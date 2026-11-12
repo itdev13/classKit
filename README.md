@@ -57,20 +57,23 @@ Tests (real MongoDB, GHL mocked): `cd classkit-api && npm test` (18 end-to-end t
 
 ## Marketplace app setup
 
-1. **OAuth**: redirect `{API}/oauth/callback`. Scopes are in `src/routes/oauth.js` (calendars + events
+1. **Distribution**: who can install = **Agency and sub-account**; target user = **Sub-account**. An agency
+   installs once and picks sub-accounts (or bulk-installs); each sub-account's INSTALL webhook links it to
+   the agency so its token is minted from the agency token on first use.
+2. **OAuth**: redirect `{API}/oauth/callback`. Scopes are in `src/routes/oauth.js` (calendars + events
    read/write, contacts read/write, conversations/message write, custom fields read/write, products,
    prices, orders, invoices, users, oauth).
-2. **Custom page**: `{UI}/` in the sub-account menu. Copy the app's **Shared Secret** into
+3. **Custom page**: `{UI}/` in the sub-account menu. Copy the app's **Shared Secret** into
    `GHL_SSO_KEY`.
-3. **Webhook URL**: `{API}/api/webhooks/ghl`. Subscribe to INSTALL, UNINSTALL, AppointmentCreate,
+4. **Webhook URL**: `{API}/api/webhooks/ghl`. Subscribe to INSTALL, UNINSTALL, AppointmentCreate,
    AppointmentUpdate, AppointmentDelete, OrderCreate, OrderStatusUpdate, InvoicePaid. Set
    `GHL_WEBHOOK_ED25519_PUBLIC_KEY`, then follow the same log-only → enforce rollout as HelmDesk.
-4. **Workflow triggers**: subscription URL `{API}/api/workflows/triggers/subscriptions`, with keys
+5. **Workflow triggers**: subscription URL `{API}/api/workflows/triggers/subscriptions`, with keys
    `classkit_pack_purchased`, `classkit_credits_low`, `classkit_pack_expiring`, `classkit_checked_in`,
    `classkit_no_show`, `classkit_late_cancel`, `classkit_booking_rejected`, `classkit_waitlist_promoted`.
-5. **Workflow actions**: `{API}/api/workflows/actions/add-credits` (inputs `credits`, `validityDays`,
+6. **Workflow actions**: `{API}/api/workflows/actions/add-credits` (inputs `credits`, `validityDays`,
    `note`), `.../remove-credits` (`credits`, `note`), `.../grant-package` (`packageName`).
-6. Production env: `GHL_MOCK=false`, `ALLOW_DEV_LOGIN=false`, a long random `JWT_SECRET`, and `UI_BASE_URL` pointing at
+7. Production env: `GHL_MOCK=false`, `ALLOW_DEV_LOGIN=false`, a long random `JWT_SECRET`, and `UI_BASE_URL` pointing at
    the deployed UI (used for kiosk and schedule links).
 
 Deploy like HelmDesk: the UI on Vercel (`vercel.json` included, set `VITE_API_URL`), the API anywhere Node runs.

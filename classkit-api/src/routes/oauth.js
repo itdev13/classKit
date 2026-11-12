@@ -67,9 +67,9 @@ router.get('/callback', async (req, res) => {
         { upsert: true, new: true }
       );
       const locations = await ghlService.getCompanyLocations(t.companyId, t.accessToken);
-      await CompanyLocation.findOneAndUpdate(
+      await CompanyLocation.updateOne(
         { companyId: t.companyId },
-        { companyId: t.companyId, locationIds: locations.map((l) => l.locationId) },
+        { $addToSet: { locationIds: { $each: locations.map((l) => l.locationId) } } },
         { upsert: true }
       );
       // Same reason as HelmDesk: drop stale location tokens so they re-mint with the new scope set.

@@ -3,6 +3,7 @@ const router = express.Router();
 const Installation = require('../models/Installation');
 const OAuthToken = require('../models/OAuthToken');
 const Workspace = require('../models/Workspace');
+const CompanyLocation = require('../models/CompanyLocation');
 const bookingService = require('../services/bookingService');
 const orderService = require('../services/orderService');
 const database = require('../config/database');
@@ -55,6 +56,11 @@ router.post('/ghl', async (req, res) => {
             { $setOnInsert: { locationId, installerUserId: data.userId || null }, $set: { companyId, active: true } },
             { upsert: true, setDefaultsOnInsert: true }
           );
+          // Agency installs: GHL sends one INSTALL per sub-account the agency enables (now or later).
+          // Record the link so this sub-account can mint its token from the agency's company token.
+          if (companyId) {
+            await CompanyLocation.updateOne({ companyId }, { $addToSet: { locationIds: locationId } }, { upsert: true });
+          }
         }
         break;
       }

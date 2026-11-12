@@ -289,3 +289,13 @@ test('check-in records the class time as the last visit and the ledger names the
   const d = await call('GET', '/api/members/c_visit');
   assert.match(d.body.ledger.find((e) => e.reason === 'booking').note, /Vinyasa Yoga/);
 });
+
+test('agency install: each sub-account INSTALL is linked to the agency so its token can be minted', async () => {
+  const CompanyLocation = require('../src/models/CompanyLocation');
+  await CompanyLocation.create({ companyId: 'agency_1', locationIds: ['loc_a'] });
+  await call('POST', '/api/webhooks/ghl', { type: 'INSTALL', appId: 'app1', companyId: 'agency_1', locationId: 'loc_b', userId: 'u1' }, { auth: false });
+  await call('POST', '/api/webhooks/ghl', { type: 'INSTALL', appId: 'app1', companyId: 'agency_1', locationId: 'loc_b', userId: 'u1' }, { auth: false });
+  const cl = await CompanyLocation.findOne({ companyId: 'agency_1' });
+  assert.deepEqual([...cl.locationIds].sort(), ['loc_a', 'loc_b']);
+  assert.ok(await Workspace.exists({ locationId: 'loc_b', companyId: 'agency_1', active: true }));
+});

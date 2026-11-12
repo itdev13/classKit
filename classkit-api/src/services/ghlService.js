@@ -278,18 +278,25 @@ class GHLService {
     }
   }
 
+  /** Every sub-account under an agency (paginated — agencies can have hundreds). */
   async getCompanyLocations(companyId, companyAccessToken) {
     if (isMock()) return [];
+    const all = [];
+    const PAGE = 100;
     try {
-      const { data } = await axios.get(`${this.baseURL}/locations/search`, {
-        headers: { Authorization: `Bearer ${companyAccessToken}`, 'Content-Type': 'application/json', Version: this.version },
-        params: { companyId, limit: 100 }
-      });
-      return (data.locations || []).map((loc) => ({ locationId: loc.id, locationName: loc.name }));
+      for (let skip = 0, guard = 0; guard < 100; guard++, skip += PAGE) {
+        const { data } = await axios.get(`${this.baseURL}/locations/search`, {
+          headers: { Authorization: `Bearer ${companyAccessToken}`, 'Content-Type': 'application/json', Version: this.version },
+          params: { companyId, limit: PAGE, skip }
+        });
+        const page = data.locations || [];
+        all.push(...page.map((loc) => ({ locationId: loc.id, locationName: loc.name })));
+        if (page.length < PAGE) break;
+      }
     } catch (error) {
-      logger.error('getCompanyLocations failed:', { message: error.message, status: error.response?.status });
-      return [];
+      logger.error('getCompanyLocations failed:', { message: error.message, status: error.response?.status, fetched: all.length });
     }
+    return all;
   }
 
   /** Make sure the location has the two custom fields we mirror the balance into. Returns their ids. */
