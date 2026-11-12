@@ -14,9 +14,9 @@ Avoid anything with "ClassPass" or "Punchpass" in it (existing products in this 
 
 ## 2. Logo
 
-- `brand/icon.svg` (source) and `brand/icon-512.png` (upload this): 512×512, about 66 KB, which fits
+- `brand/icon.svg` (source) and `brand/icon-512.png` (upload this): 512×512, about 160 KB, which fits
   HighLevel's limits (400–800 px, under 500 KB).
-- A class-pass ticket with a check mark and credit dots, on the app's violet (#5B4BDB). It doesn't depend on the name.
+- **C (in use)**: a class calendar shaped like a ticket, violet tile with a coral header (`brand/icon-c-512.png`). **A (alternative)**: a stack of class passes with credit dots and a coral check (`brand/icon-a-512.png`). Neither depends on the name.
 
 ## 3. Category
 
