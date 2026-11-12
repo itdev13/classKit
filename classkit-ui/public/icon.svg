@@ -1,1 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#5B4BDB"/><g fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M150 170h212a28 28 0 0 1 28 28v28a34 34 0 0 0 0 68v28a28 28 0 0 1-28 28H150a28 28 0 0 1-28-28v-28a34 34 0 0 0 0-68v-28a28 28 0 0 1 28-28Z"/><path d="M300 176v24M300 244v24M300 312v24"/><path d="M178 256l26 26 44-50"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6E5FF0"/>
+      <stop offset="1" stop-color="#4A3BC6"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#g)"/>
+  <rect x="17" y="17" width="478" height="478" rx="111" fill="none" stroke="#FFFFFF" stroke-opacity=".18" stroke-width="2"/>
+  <!-- Class-pass ticket with notches -->
+  <path d="M136 156h240a30 30 0 0 1 30 30v34a36 36 0 0 0 0 72v34a30 30 0 0 1-30 30H136a30 30 0 0 1-30-30v-34a36 36 0 0 0 0-72v-34a30 30 0 0 1 30-30Z" fill="#FFFFFF"/>
+  <!-- Perforation -->
+  <g fill="#5B4BDB" opacity=".35"><circle cx="296" cy="186" r="7"/><circle cx="296" cy="222" r="7"/><circle cx="296" cy="258" r="7"/><circle cx="296" cy="294" r="7"/><circle cx="296" cy="330" r="7"/></g>
+  <!-- Check -->
+  <path d="M180 258l32 32 56-64" fill="none" stroke="#5B4BDB" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Credit dots on the stub -->
+  <g fill="#5B4BDB"><circle cx="336" cy="222" r="11"/><circle cx="336" cy="258" r="11"/><circle cx="336" cy="294" r="11" opacity=".3"/></g>
+</svg>
