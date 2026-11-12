@@ -28,6 +28,9 @@ router.post('/ghl', async (req, res) => {
   const companyId = (data.companyId || '').trim() || null;
   const locationId = (data.locationId || '').trim() || null;
   logger.info('📥 Webhook', { type, locationId });
+  if (String(process.env.LOG_WEBHOOK_PAYLOADS || '').toLowerCase() === 'true') {
+    logger.info('📦 Webhook payload', { type, payload: JSON.stringify(data).slice(0, 4000) });
+  }
   if (!type) return res.status(400).json({ success: false, error: 'Missing type' });
   if (!database.isConnected()) return res.status(200).json({ success: true, persisted: false });
 
