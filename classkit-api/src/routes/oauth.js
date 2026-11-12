@@ -85,13 +85,21 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+// App logo, inlined so the page has no external asset dependency (same art as brand/icon.svg).
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" aria-label="Logo" style="display:block;margin:0 auto 18px" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C6CF7"/><stop offset="1" stop-color="#3F2FC2"/></linearGradient><linearGradient id="co" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9A6B"/><stop offset="1" stop-color="#F2643D"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#bg)"/>
+<path d="M146 140h220a32 32 0 0 1 32 32v62a28 28 0 0 0 0 56v58a32 32 0 0 1-32 32H146a32 32 0 0 1-32-32v-58a28 28 0 0 0 0-56v-62a32 32 0 0 1 32-32Z" fill="#FFFFFF"/>
+<path d="M146 140h220a32 32 0 0 1 32 32v34H114v-34a32 32 0 0 1 32-32Z" fill="url(#co)"/>
+<rect x="178" y="110" width="22" height="58" rx="11" fill="#FFFFFF" stroke="#4B3BD0" stroke-width="8"/>
+<rect x="312" y="110" width="22" height="58" rx="11" fill="#FFFFFF" stroke="#4B3BD0" stroke-width="8"/>
+<path d="M200 292l38 38 76-84" fill="none" stroke="#5B4BDB" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 function page(title, body, isError = false) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#F6F5FB;color:#1C1838}
   .c{background:#fff;border:1px solid #E4E1F2;border-top:4px solid ${isError ? '#D64545' : '#5B4BDB'};padding:44px;border-radius:16px;max-width:440px;text-align:center}
-  .m{width:56px;height:56px;border-radius:14px;background:#5B4BDB;color:#fff;font:800 28px/56px sans-serif;margin:0 auto 18px}
   h1{font-size:22px;margin:0 0 8px}p{color:#5C5878;line-height:1.6}</style></head>
-  <body><div class="c"><div class="m">C</div><h1>${title}</h1><p>${body}</p></div></body></html>`;
+  <body><div class="c">${LOGO_SVG}<h1>${title}</h1><p>${body}</p></div></body></html>`;
 }
 
 module.exports = router;
