@@ -110,7 +110,8 @@ async function book(ws, cal, appt, { source = 'ghl', actor = 'system' } = {}) {
     at: booking.startTime,
     refId: appt.id,
     idempotencyKey: `book:${appt.id}:${booking.chargeSeq}`,
-    actor
+    actor,
+    note: `${cal.name || 'Class'} · ${notifyService.formatWhen(booking.startTime, ws.timezone)}`
   });
 
   if (spend.ok) {
@@ -159,7 +160,8 @@ async function rebook(existing, ws, cal, appt) {
   const spend = await creditService.consume({
     locationId: ws.locationId, contactId: updated.contactId, calendarId: updated.calendarId,
     cost: cal.creditCost ?? 1, at: updated.startTime, refId: updated.appointmentId,
-    idempotencyKey: `book:${updated.appointmentId}:${updated.chargeSeq}`
+    idempotencyKey: `book:${updated.appointmentId}:${updated.chargeSeq}`,
+    note: `${cal.name || 'Class'} · ${notifyService.formatWhen(updated.startTime, ws.timezone)} (rebooked)`
   });
   if (spend.ok) {
     await Booking.updateOne({ _id: updated._id }, { $set: { lotId: spend.lotId || null, creditsCharged: spend.charged || 0, unlimited: !!spend.unlimited, owesCredit: false } });
@@ -256,7 +258,7 @@ async function checkIn(booking, ws, { actor = 'staff', syncGhl = false } = {}) {
   const wasNoShow = booking.status === 'noshow';
   await Member.updateOne(
     { locationId: ws.locationId, contactId: updated.contactId },
-    { $inc: { visits: 1, ...(wasNoShow ? { noShows: -1 } : {}) }, $set: { lastVisitAt: new Date() } }
+    { $inc: { visits: 1, ...(wasNoShow ? { noShows: -1 } : {}) }, $max: { lastVisitAt: new Date(Math.min(Date.now(), +updated.startTime)) } }
   );
   if (syncGhl) {
     ghlService.updateAppointmentStatus(ws.locationId, updated.appointmentId, 'showed')

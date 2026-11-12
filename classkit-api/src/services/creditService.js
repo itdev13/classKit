@@ -114,7 +114,7 @@ async function grant(opts) {
  *   { ok: false, reason: 'no_credits' }
  *   { ok: true, duplicate: true, ... }              — this key was already processed
  */
-async function consume({ locationId, contactId, calendarId, cost = 1, at = new Date(), refId, idempotencyKey, actor = 'system' }) {
+async function consume({ locationId, contactId, calendarId, cost = 1, at = new Date(), refId, idempotencyKey, actor = 'system', note = '' }) {
   const when = new Date(at);
 
   // 1. Unlimited membership valid on the class date covers it for free.
@@ -125,21 +125,23 @@ async function consume({ locationId, contactId, calendarId, cost = 1, at = new D
   const unlimitedOk = unlimited && lotCoversCalendar(unlimited, calendarId);
 
   if (unlimitedOk || cost <= 0) {
-    const c = await claim({ locationId, contactId, lotId: unlimited?._id || null, delta: 0, reason: 'booking', refId, idempotencyKey, actor, note: unlimitedOk ? 'Unlimited membership' : 'Free class' });
+    const c = await claim({ locationId, contactId, lotId: unlimited?._id || null, delta: 0, reason: 'booking', refId, idempotencyKey, actor, note: [note, unlimitedOk ? 'unlimited membership' : 'free class'].filter(Boolean).join(' — ') });
     if (!c.claimed) return { ok: true, duplicate: true, unlimited: !!unlimitedOk, lotId: c.existing?.lotId || null, charged: 0 };
     return { ok: true, unlimited: !!unlimitedOk, lotId: unlimited?._id || null, charged: 0 };
   }
 
   // 2. Claim the key before touching any lot.
-  const c = await claim({ locationId, contactId, delta: -cost, reason: 'booking', refId, idempotencyKey, actor });
+  const c = await claim({ locationId, contactId, delta: -cost, reason: 'booking', refId, idempotencyKey, actor, note });
   if (!c.claimed) {
     return { ok: true, duplicate: true, unlimited: false, lotId: c.existing?.lotId || null, charged: -(c.existing?.delta || 0) };
   }
 
-  // 3. Spend from the soonest-expiring lot that has enough and is valid on the class date.
+  // 3. Spend from the soonest-expiring lot that has enough and hasn't expired by the class date.
+  //    (Packs have no start restriction — only unlimited memberships cover a fixed date range — so
+  //    staff can record a class that already happened against a pack bought afterwards.)
   const candidates = await CreditLot.find({
     locationId, contactId, status: 'active', kind: { $ne: 'unlimited' },
-    remaining: { $gte: cost }, startsAt: { $lte: when }, expiresAt: { $gt: when }
+    remaining: { $gte: cost }, expiresAt: { $gt: when }
   }).sort({ expiresAt: 1, createdAt: 1 }).lean();
 
   for (const lot of candidates) {

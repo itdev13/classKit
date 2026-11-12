@@ -60,7 +60,7 @@ router.get('/schedule/:slug', wrap(async (req, res) => {
     const k = `${c._id.c}|${new Date(c._id.s).toISOString()}`;
     if (cal?.usesCredits && !sessions.has(k)) sessions.set(k, { cal, startTime: new Date(c._id.s).toISOString() });
   }
-  const list = [...sessions.entries()].map(([k, { cal, startTime }]) => {
+  const list = [...sessions.entries()].filter(([, v]) => new Date(v.startTime) > from).map(([k, { cal, startTime }]) => {
     const booked = seatMap.get(k) || 0;
     return {
       calendarId: cal.calendarId, name: cal.name, startTime, durationMins: cal.durationMins, creditCost: cal.creditCost,

@@ -270,3 +270,22 @@ test('tenant isolation: another location cannot read this one', async () => {
   assert.equal(m.body.total, 0);
   token = saved;
 });
+
+test('a class earlier than the purchase can still use the pack (back-dated staff record)', async () => {
+  await hook(order('ord_back', 'c_back'));
+  const r = await hook(appt('back_1', 'c_back', new Date(Date.now() - 5 * HOUR).toISOString()));
+  assert.equal(r.body.booked, true);
+  assert.equal(await balance('c_back'), 9);
+});
+
+test('check-in records the class time as the last visit and the ledger names the class', async () => {
+  await creditService.grant({ locationId: LOC, contactId: 'c_visit', credits: 2, validityDays: 30, kind: 'manual', idempotencyKey: 'visit-grant' });
+  const past = new Date(Date.now() - 3 * 864e5);
+  await hook(appt('visit_1', 'c_visit', past.toISOString()));
+  const b = await Booking.findOne({ appointmentId: 'visit_1' });
+  await call('POST', `/api/classes/bookings/${b._id}/checkin`);
+  const m = await Member.findOne({ contactId: 'c_visit' });
+  assert.equal(+m.lastVisitAt, +past);
+  const d = await call('GET', '/api/members/c_visit');
+  assert.match(d.body.ledger.find((e) => e.reason === 'booking').note, /Vinyasa Yoga/);
+});

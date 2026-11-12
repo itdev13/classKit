@@ -59,7 +59,7 @@ router.post('/verify', wrap(async (req, res) => {
   res.json({
     success: true,
     token: signSession({ locationId, companyId, userId, name, role }),
-    workspace: { locationId, locationName: ws.locationName, setupComplete: ws.setupComplete, brand: ws.brand, timezone: ws.timezone },
+    workspace: { locationId, locationName: ws.brand?.name || ws.locationName, setupComplete: ws.setupComplete, brand: ws.brand, timezone: ws.timezone },
     user: { userId, name, role }
   });
 }));
