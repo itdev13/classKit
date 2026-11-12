@@ -17,7 +17,8 @@ const logger = require('../utils/logger');
  *   /api/public/kiosk/:token     — front-desk tablet check-in by phone number
  * Only first names / counts leave this router; never full member data.
  */
-const writeLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+const writeLimiter = rateLimit({ windowMs: 60 * 1000, max: Number(process.env.PUBLIC_RATE_LIMIT_PER_MIN || 20), standardHeaders: true, legacyHeaders: false });
+const BOOKING_WIDGET_URL = (process.env.GHL_BOOKING_WIDGET_URL || 'https://api.leadconnectorhq.com/widget/booking').replace(/\/$/, '');
 
 function brandOf(ws) {
   return { name: ws.brand?.name || ws.locationName || 'Our studio', color: ws.brand?.color || '#5B4BDB', logoUrl: ws.brand?.logoUrl || '', timezone: ws.timezone };
@@ -65,7 +66,7 @@ router.get('/schedule/:slug', wrap(async (req, res) => {
     return {
       calendarId: cal.calendarId, name: cal.name, startTime, durationMins: cal.durationMins, creditCost: cal.creditCost,
       spotsLeft: Math.max(0, cal.capacity - booked), capacity: cal.capacity, full: booked >= cal.capacity,
-      bookUrl: `https://api.leadconnectorhq.com/widget/booking/${cal.calendarId}`
+      bookUrl: `${BOOKING_WIDGET_URL}/${cal.calendarId}`
     };
   }).sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 

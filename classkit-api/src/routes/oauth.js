@@ -31,7 +31,8 @@ const SCOPES = [
 ].join(' ');
 
 router.get('/authorize', (req, res) => {
-  const url = 'https://marketplace.gohighlevel.com/v2/oauth/chooselocation?response_type=code' +
+  const base = (process.env.GHL_MARKETPLACE_URL || 'https://marketplace.gohighlevel.com').replace(/\/$/, '');
+  const url = `${base}/v2/oauth/chooselocation?response_type=code` +
     `&client_id=${process.env.GHL_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.GHL_REDIRECT_URI)}` +
     `&scope=${encodeURIComponent(SCOPES)}`;
