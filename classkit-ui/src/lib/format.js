@@ -23,7 +23,25 @@ export function fromNow(d) {
   const m = Math.round(days / 30);
   return `${m} month${m > 1 ? 's' : ''} ago`;
 }
-export const money = (n) => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(n) || 0);
+// The studio's business currency (from HighLevel or Settings). Set once at sign-in.
+let currentCurrency = 'USD';
+export function setCurrency(code) { if (code) currentCurrency = String(code).toUpperCase(); }
+export const getCurrency = () => currentCurrency;
+export function money(n, currency = currentCurrency) {
+  const v = Number(n) || 0;
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: Number.isInteger(v) ? 0 : 2 }).format(v);
+  } catch {
+    return `${currency} ${v.toLocaleString()}`;
+  }
+}
+export function currencySymbol(code) {
+  try {
+    const part = new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((x) => x.type === 'currency');
+    return part ? part.value : code;
+  } catch { return code; }
+}
+export const COMMON_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NZD', 'INR', 'AED', 'SGD', 'ZAR', 'BRL', 'MXN', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK', 'PHP', 'MYR', 'NGN'];
 export function initials(name = '') {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
 }

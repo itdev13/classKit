@@ -299,3 +299,17 @@ test('agency install: each sub-account INSTALL is linked to the agency so its to
   assert.deepEqual([...cl.locationIds].sort(), ['loc_a', 'loc_b']);
   assert.ok(await Workspace.exists({ locationId: 'loc_b', companyId: 'agency_1', active: true }));
 });
+
+test('currency: learned from a paid order, owner choice in Settings wins', async () => {
+  const cur = async () => (await call('GET', '/api/settings')).body.settings.currency;
+  await Workspace.updateOne({ locationId: LOC }, { currency: null, currencyLocked: false });
+  assert.equal(await cur(), 'USD');
+  await hook({ ...order('cur_1', 'c_cur'), currency: 'inr' });
+  assert.equal(await cur(), 'INR');
+  assert.equal((await call('PUT', '/api/settings', { currency: 'XYZ1' })).status, 400);
+  const saved = await call('PUT', '/api/settings', { currency: 'EUR' });
+  assert.equal(saved.body.settings.currency, 'EUR');
+  assert.equal(saved.body.settings.currencyLocked, true);
+  await hook({ ...order('cur_2', 'c_cur'), currency: 'INR' });
+  assert.equal(await cur(), 'EUR');
+});

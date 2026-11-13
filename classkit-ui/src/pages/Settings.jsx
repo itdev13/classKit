@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { setCurrency, currencySymbol, COMMON_CURRENCIES } from '../lib/format.js';
 import { api } from '../lib/api.js';
 import { CalendarsEditor, PolicyEditor } from '../components/Editors.jsx';
 import { CopyLink, Field, Spinner } from '../components/ui.jsx';
@@ -42,8 +43,9 @@ export default function Settings({ notify }) {
   const save = async () => {
     setSaving(true);
     try {
-      const r = await api.saveSettings({ calendars, policy: s.policy, templates: s.templates, buyUrl: s.buyUrl, brand: s.brand, timezone: s.timezone });
+      const r = await api.saveSettings({ calendars, policy: s.policy, templates: s.templates, buyUrl: s.buyUrl, brand: s.brand, timezone: s.timezone, currency: s.currency });
       setS(r.settings);
+      setCurrency(r.settings.currency);
       notify('Settings saved');
     } catch (e) { notify(e.message, true); } finally { setSaving(false); }
   };
@@ -87,6 +89,11 @@ export default function Settings({ notify }) {
           <Field label="Brand color"><input type="color" value={s.brand.color} onChange={(e) => setS({ ...s, brand: { ...s.brand, color: e.target.value } })} /></Field>
           <Field label="Time zone"><input value={s.timezone} onChange={(e) => setS({ ...s, timezone: e.target.value })} placeholder="America/New_York" /></Field>
         </div>
+        <Field label="Currency" hint={s.currencyLocked ? 'Used for prices and reports.' : 'Picked up from your HighLevel account. Change it if it looks wrong.'}>
+          <select value={s.currency} onChange={(e) => setS({ ...s, currency: e.target.value })} style={{ maxWidth: 220 }}>
+            {[...new Set([s.currency, ...COMMON_CURRENCIES])].map((c) => <option key={c} value={c}>{c} ({currencySymbol(c)})</option>)}
+          </select>
+        </Field>
         <Field label="Logo URL" hint="Shown on the kiosk and schedule."><input value={s.brand.logoUrl} onChange={(e) => setS({ ...s, brand: { ...s.brand, logoUrl: e.target.value } })} placeholder="https://…/logo.png" /></Field>
       </section>
 

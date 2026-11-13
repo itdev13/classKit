@@ -3,6 +3,7 @@ const router = express.Router();
 const Workspace = require('../models/Workspace');
 const ghlService = require('../services/ghlService');
 const { requireAdmin, wrap } = require('../middleware/auth');
+const currencyService = require('../services/currencyService');
 const logger = require('../utils/logger');
 
 const POLICY_KEYS = ['cancelWindowHours', 'blockWithoutCredits', 'autoNoShowMinutes', 'lowCreditThreshold', 'expiryReminderDays',
@@ -16,6 +17,7 @@ function publicLinks(ws) {
 function view(ws) {
   return {
     locationId: ws.locationId, locationName: ws.locationName, timezone: ws.timezone, setupComplete: ws.setupComplete,
+    currency: currencyService.effective(ws), currencyLocked: ws.currencyLocked,
     calendars: ws.calendars, policy: ws.policy, templates: { ...Workspace.DEFAULT_TEMPLATES, ...(ws.templates || {}) },
     buyUrl: ws.buyUrl, brand: ws.brand, customFieldIds: ws.customFieldIds, ...publicLinks(ws)
   };
@@ -60,6 +62,11 @@ router.put('/', requireAdmin, wrap(async (req, res) => {
   if ('buyUrl' in b) ws.buyUrl = String(b.buyUrl || '').trim();
   if (b.brand) ws.brand = { ...ws.brand.toObject?.() ?? ws.brand, ...b.brand };
   if ('timezone' in b && b.timezone) ws.timezone = String(b.timezone);
+  if ('currency' in b) {
+    const c = currencyService.normalize(b.currency);
+    if (b.currency && !c) return res.status(400).json({ success: false, error: 'Unknown currency code.' });
+    if (c && c !== currencyService.effective(ws)) { ws.currency = c; ws.currencyLocked = true; }
+  }
   await ws.save();
   res.json({ success: true, settings: view(ws) });
 }));

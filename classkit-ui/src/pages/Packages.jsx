@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
-import { money } from '../lib/format.js';
+import { money, getCurrency } from '../lib/format.js';
 import { Badge, Empty, Field, Icon, Modal, Spinner } from '../components/ui.jsx';
 
 const KIND_LABEL = { pack: 'Class pack', unlimited: 'Unlimited', dropin: 'Drop-in' };
@@ -98,7 +98,7 @@ function PackageModal({ pkg, notify, onClose, onSaved }) {
       <div className="grid3">
         {f.kind !== 'unlimited' && <Field label="Credits"><input type="number" min="1" value={f.credits} onChange={(e) => set('credits', Number(e.target.value))} /></Field>}
         <Field label="Valid for (days)" hint={f.kind === 'unlimited' ? 'Match your billing period, e.g. 31 for monthly.' : undefined}><input type="number" min="1" value={f.validityDays} onChange={(e) => set('validityDays', Number(e.target.value))} /></Field>
-        <Field label="Price (USD)" hint="For reports only — HighLevel charges the card."><input type="number" min="0" step="1" value={f.priceUsd} onChange={(e) => set('priceUsd', Number(e.target.value))} /></Field>
+        <Field label={`Price (${getCurrency()})`} hint="For reports only — HighLevel charges the card."><input type="number" min="0" step="1" value={f.priceUsd} onChange={(e) => set('priceUsd', Number(e.target.value))} /></Field>
       </div>
 
       <h4 className="section-label">Linked HighLevel products</h4>
@@ -108,7 +108,7 @@ function PackageModal({ pkg, notify, onClose, onSaved }) {
           {products.map((p) => (
             <label key={p.productId} className="check">
               <input type="checkbox" checked={f.ghlProductIds.includes(p.productId)} onChange={() => toggle('ghlProductIds', p.productId)} />
-              <span>{p.name}{p.prices?.length ? <small className="muted"> · {p.prices.map((pr) => `${pr.name || 'price'} ${pr.amount != null ? money(pr.amount) : ''}`).join(', ')}</small> : null}</span>
+              <span>{p.name}{p.prices?.length ? <small className="muted"> · {p.prices.map((pr) => `${pr.name || 'price'} ${pr.amount != null ? money(pr.amount, pr.currency || undefined) : ''}`).join(', ')}</small> : null}</span>
             </label>
           ))}
         </div>

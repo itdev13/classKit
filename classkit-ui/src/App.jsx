@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { setCurrency } from './lib/format.js';
 import { api, setToken, setRefreshHandler } from './lib/api.js';
 import { Icon, Spinner, Toast } from './components/ui.jsx';
 import SetupWizard from './pages/SetupWizard.jsx';
@@ -65,6 +66,7 @@ export default function App() {
       const r = await handshake();
       if (!r) { setPhase('connect'); return; }
       setToken(r.token);
+      setCurrency(r.workspace.currency);
       setSession(r);
       setPhase(r.workspace.setupComplete ? 'app' : 'wizard');
     } catch (e) {

@@ -4,6 +4,7 @@ const creditService = require('./creditService');
 const memberService = require('./memberService');
 const notifyService = require('./notifyService');
 const triggerService = require('./triggerService');
+const currencyService = require('./currencyService');
 const logger = require('../utils/logger');
 
 const PAID = ['completed', 'paid', 'succeeded', 'success', 'fulfilled'];
@@ -23,7 +24,8 @@ function parse(type, p = {}) {
     qty: Math.max(1, Math.min(20, Number(it.qty || it.quantity || 1))),
     amount: Number(it.price?.amount ?? it.amount ?? 0)
   }));
-  return { orderId, contactId, paid, items, source: isInvoice ? 'invoice' : 'order' };
+  const currency = p.currency || p.currencyCode || p.amountSummary?.currency || null;
+  return { orderId, contactId, paid, items, currency, source: isInvoice ? 'invoice' : 'order' };
 }
 
 /** Grant packages for every line item that maps to a ClassKit package. Idempotent per order line. */
@@ -33,6 +35,7 @@ async function handlePaid(locationId, type, payload) {
   const o = parse(type, payload);
   if (!o.paid) return { ignored: 'not_paid' };
   if (!o.orderId || !o.contactId) return { ignored: 'missing_order_or_contact' };
+  await currencyService.learnFromPayment(ws, o.currency).catch(() => {});
 
   const granted = [];
   for (const it of o.items) {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
-import { fmtDate, fmtDateTime, fromNow, isUnlimited } from '../lib/format.js';
+import { fmtDate, fmtDateTime, fromNow, isUnlimited, money } from '../lib/format.js';
 import { Avatar, Badge, Credits, Empty, Field, Icon, Modal, Spinner } from '../components/ui.jsx';
 import MemberPicker from '../components/MemberPicker.jsx';
 
@@ -191,7 +191,7 @@ function SellModal({ contactId, name, notify, onClose, onDone }) {
               <label key={p._id} className={`pkg-option ${pick === p._id ? 'on' : ''}`}>
                 <input type="radio" name="pkg" checked={pick === p._id} onChange={() => setPick(p._id)} />
                 <strong>{p.name}</strong>
-                <small>{p.kind === 'unlimited' ? 'Unlimited' : `${p.credits} credits`} · {p.validityDays} days{p.priceUsd ? ` · $${p.priceUsd}` : ''}</small>
+                <small>{p.kind === 'unlimited' ? 'Unlimited' : `${p.credits} credits`} · {p.validityDays} days{p.priceUsd ? ` · ${money(p.priceUsd)}` : ''}</small>
               </label>
             ))}
           </div>

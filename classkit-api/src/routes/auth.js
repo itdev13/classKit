@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const currencyService = require('../services/currencyService');
 const CryptoJS = require('crypto-js');
 const OAuthToken = require('../models/OAuthToken');
 const CompanyLocation = require('../models/CompanyLocation');
@@ -52,6 +53,8 @@ router.post('/verify', wrap(async (req, res) => {
   );
   if (!ws.installerUserId && userId) { ws.installerUserId = userId; await ws.save(); }
 
+  const currency = await currencyService.detectQuick(ws);
+
   const isAdmin = !ws.setupComplete || (userId && (ws.installerUserId === userId || ws.adminUserIds.includes(userId))) ||
     String(ctx?.role || '').toLowerCase() === 'admin' || String(ctx?.type || '').toLowerCase() === 'agency' || !ctx;
   const role = isAdmin ? 'admin' : 'staff';
@@ -59,7 +62,7 @@ router.post('/verify', wrap(async (req, res) => {
   res.json({
     success: true,
     token: signSession({ locationId, companyId, userId, name, role }),
-    workspace: { locationId, locationName: ws.brand?.name || ws.locationName, setupComplete: ws.setupComplete, brand: ws.brand, timezone: ws.timezone },
+    workspace: { locationId, locationName: ws.brand?.name || ws.locationName, setupComplete: ws.setupComplete, brand: ws.brand, timezone: ws.timezone, currency },
     user: { userId, name, role }
   });
 }));

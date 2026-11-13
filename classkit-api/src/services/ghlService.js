@@ -270,11 +270,12 @@ class GHLService {
         locationName: loc.name || null,
         locationEmail: loc.email || null,
         locationPhone: loc.phone || null,
-        locationTimezone: loc.timezone || null
+        locationTimezone: loc.timezone || null,
+        currency: loc.currency || loc.defaultCurrency || loc.business?.currency || loc.settings?.currency || null
       };
     } catch (error) {
       logger.warn('getLocationDetails failed (non-critical):', error.message);
-      return { locationName: null, locationEmail: null, locationPhone: null, locationTimezone: null };
+      return { locationName: null, locationEmail: null, locationPhone: null, locationTimezone: null, currency: null };
     }
   }
 
@@ -413,7 +414,7 @@ class GHLService {
   async listProducts(locationId) {
     const res = await this.apiRequest('GET', '/products/', locationId, null, { locationId, limit: 100 });
     const products = res.products || [];
-    return products.map((p) => ({ productId: p._id || p.id, name: p.name, prices: (p.prices || []).map((pr) => ({ priceId: pr._id || pr.id, name: pr.name, amount: pr.amount })) }));
+    return products.map((p) => ({ productId: p._id || p.id, name: p.name, prices: (p.prices || []).map((pr) => ({ priceId: pr._id || pr.id, name: pr.name, amount: pr.amount, currency: pr.currency || null })) }));
   }
 }
 

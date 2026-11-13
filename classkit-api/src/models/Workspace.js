@@ -37,6 +37,11 @@ const workspaceSchema = new mongoose.Schema(
     companyId: { type: String, default: null, index: true },
     locationName: { type: String, default: null },
     timezone: { type: String, default: 'UTC' },
+    // ISO 4217 code of the business currency. Detected from HighLevel (location, product prices, paid orders)
+    // until the owner picks one in Settings (currencyLocked).
+    currency: { type: String, default: null },
+    currencyLocked: { type: Boolean, default: false },
+    currencyCheckedAt: { type: Date, default: null },
     installerUserId: { type: String, default: null },
     adminUserIds: { type: [String], default: [] },
     setupComplete: { type: Boolean, default: false },
