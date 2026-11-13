@@ -7,8 +7,8 @@ import MemberPicker from '../components/MemberPicker.jsx';
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'low', label: 'Low credits' },
-  { id: 'expiring', label: 'Expiring soon' },
-  { id: 'inactive', label: 'Not seen in 14 days' },
+  { id: 'expiring', label: 'Expiring' },
+  { id: 'inactive', label: 'Inactive 14d' },
   { id: 'unlimited', label: 'Unlimited' }
 ];
 

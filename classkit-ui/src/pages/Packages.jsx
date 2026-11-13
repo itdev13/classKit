@@ -23,22 +23,38 @@ export default function Packages({ isAdmin, notify }) {
         </Empty>
       ) : (
         <div className="pkg-grid">
-          {list.map((p) => (
-            <div key={p._id} className={`card pkg ${p.active ? '' : 'archived'}`}>
-              <div className="row between">
-                <Badge tone={p.kind === 'unlimited' ? 'accent' : 'neutral'}>{KIND_LABEL[p.kind]}</Badge>
-                {!p.active && <Badge tone="muted">Archived</Badge>}
+          {list.map((p) => {
+            const links = p.ghlProductIds.length + p.ghlPriceIds.length;
+            const perClass = p.kind !== 'unlimited' && p.priceUsd && p.credits > 1 ? p.priceUsd / p.credits : null;
+            return (
+              <div key={p._id} className={`card pkg ${p.active ? '' : 'archived'} kind-${p.kind}`}>
+                <div className="pkg-top">
+                  <Badge tone={p.kind === 'unlimited' ? 'accent' : 'neutral'}>{KIND_LABEL[p.kind]}</Badge>
+                  {!p.active && <Badge tone="muted">Archived</Badge>}
+                  <span className="grow" />
+                  {isAdmin && <button className="icon-btn" title="Edit package" aria-label={`Edit ${p.name}`} onClick={() => setEdit(p)}><Icon name="edit" size={15} /></button>}
+                </div>
+                <h3>{p.name}</h3>
+                <div className="pkg-big">{p.kind === 'unlimited' ? <><Icon name="infinity" size={24} /> Unlimited</> : <>{p.credits}<small> class{p.credits === 1 ? '' : 'es'}</small></>}</div>
+                <div className="pkg-price">
+                  <b>{p.priceUsd ? money(p.priceUsd) : 'No price'}</b>
+                  {perClass ? <span>{money(perClass)} per class</span> : null}
+                </div>
+                <div className="pkg-meta"><span><Icon name="clock" size={13} /> Valid {p.validityDays} days</span><span><Icon name="ticket" size={13} /> {p.sold} sold</span></div>
+                <div className={`pkg-link ${links ? 'ok' : 'no'}`}>
+                  <Icon name={links ? 'link' : 'alert'} size={13} />
+                  {links ? `Linked to ${links} product${links === 1 ? '' : 's'} · sales add credits` : 'Not linked · sales won’t add credits'}
+                </div>
               </div>
-              <h3>{p.name}</h3>
-              <div className="pkg-big">{p.kind === 'unlimited' ? <><Icon name="infinity" size={22} /> Unlimited</> : `${p.credits} credit${p.credits === 1 ? '' : 's'}`}</div>
-              <p className="muted small">{p.priceUsd ? money(p.priceUsd) : 'No price set'} · valid {p.validityDays} days</p>
-              <p className="small">{p.ghlProductIds.length || p.ghlPriceIds.length
-                ? <span className="good-text"><Icon name="link" size={13} /> Linked to {p.ghlProductIds.length + p.ghlPriceIds.length} product{p.ghlProductIds.length + p.ghlPriceIds.length === 1 ? '' : 's'}</span>
-                : <span className="warn-text"><Icon name="alert" size={13} /> Not linked — sales won't add credits</span>}</p>
-              <p className="muted small">{p.sold} sold</p>
-              {isAdmin && <button className="btn sm" onClick={() => setEdit(p)}><Icon name="edit" size={14} /> Edit</button>}
-            </div>
-          ))}
+            );
+          })}
+          {isAdmin && (
+            <button className="pkg-new" onClick={() => setEdit({})}>
+              <span><Icon name="plus" size={20} /></span>
+              <b>New package</b>
+              <small>Class pack, unlimited membership or drop-in</small>
+            </button>
+          )}
         </div>
       )}
       {edit && <PackageModal pkg={edit} notify={notify} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />}

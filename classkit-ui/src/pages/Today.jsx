@@ -1,30 +1,36 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api.js';
 import { fmtTime, fmtDay, isUnlimited, startOfDayTz, addDaysTz, toZonedInput, fromZonedInput } from '../lib/format.js';
 import { Avatar, Badge, Empty, Icon, Modal, Spinner, Field } from '../components/ui.jsx';
 import MemberPicker from '../components/MemberPicker.jsx';
 
-const STATUS = {
-  booked: { label: 'Booked', tone: 'neutral' },
-  attended: { label: 'Checked in', tone: 'good' },
-  noshow: { label: 'No-show', tone: 'crit' }
-};
+const dayKey = (d, tz) => toZonedInput(new Date(d), tz).slice(0, 10);
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+function weekStart(day, tz) {
+  const wd = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: tz || undefined }).format(day);
+  return addDaysTz(day, -WEEKDAYS.indexOf(wd), tz);
+}
+const dayNum = (d, tz) => new Intl.DateTimeFormat(undefined, { day: 'numeric', timeZone: tz || undefined }).format(d);
+const monthLabel = (d, tz) => new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric', timeZone: tz || undefined }).format(d);
 
 export default function Today({ tz, notify, onOpenMember }) {
   const [day, setDay] = useState(() => startOfDayTz(new Date(), tz));
-  const [sessions, setSessions] = useState(null);
+  const [week, setWeek] = useState(null); // sessions for the 7 days around `day`
   const [busy, setBusy] = useState(null);
   const [cancelFor, setCancelFor] = useState(null);
   const [bookFor, setBookFor] = useState(null); // { calendarId, startTime, name } | { blank: true }
 
+  const start = useMemo(() => weekStart(day, tz), [day, tz]);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysTz(start, i, tz)), [start, tz]);
+
   const load = useCallback(async () => {
     try {
-      const r = await api.classes(day, addDaysTz(day, 1, tz));
-      setSessions(r.sessions);
-    } catch (e) { notify(e.message, true); setSessions([]); }
-  }, [day, tz, notify]);
+      const r = await api.classes(start, addDaysTz(start, 7, tz));
+      setWeek(r.sessions);
+    } catch (e) { notify(e.message, true); setWeek([]); }
+  }, [start, tz, notify]);
 
-  useEffect(() => { setSessions(null); load(); }, [load]);
+  useEffect(() => { setWeek(null); load(); }, [load]);
   useEffect(() => {
     const t = setInterval(load, 30000);
     const f = () => document.visibilityState === 'visible' && load();
@@ -37,84 +43,126 @@ export default function Today({ tz, notify, onOpenMember }) {
     try { await fn(); notify(ok); await load(); } catch (e) { notify(e.message, true); } finally { setBusy(null); }
   };
 
-  const isToday = +day === +startOfDayTz(new Date(), tz);
-  const totals = (sessions || []).reduce((a, s) => ({ booked: a.booked + s.booked, attended: a.attended + s.attended }), { booked: 0, attended: 0 });
+  const today = startOfDayTz(new Date(), tz);
+  const isToday = +day === +today;
+  const byDay = useMemo(() => {
+    const m = {};
+    for (const s of week || []) (m[dayKey(s.startTime, tz)] ||= []).push(s);
+    return m;
+  }, [week, tz]);
+  const sessions = week ? (byDay[dayKey(day, tz)] || []) : null;
+  const totals = (sessions || []).reduce((a, s) => ({
+    booked: a.booked + s.booked, attended: a.attended + s.attended, waiting: a.waiting + s.waitlist.length,
+    seats: a.seats + (s.capacity || 0)
+  }), { booked: 0, attended: 0, waiting: 0, seats: 0 });
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <h1>{isToday ? 'Today' : fmtDay(day, tz)}</h1>
-          <p className="muted">{sessions ? `${sessions.length} class${sessions.length === 1 ? '' : 'es'} · ${totals.attended}/${totals.booked} checked in` : 'Loading…'}</p>
+          <p className="muted">{monthLabel(day, tz)}{tz ? ` · ${tz.replace(/_/g, ' ')}` : ''}</p>
         </div>
-        <div className="row gap">
-          <div className="seg">
-            <button className="icon-btn" onClick={() => setDay(addDaysTz(day, -1, tz))} aria-label="Previous day"><Icon name="chevL" /></button>
-            <button className="btn sm ghost" onClick={() => setDay(startOfDayTz(new Date(), tz))} disabled={isToday}>Today</button>
-            <button className="icon-btn" onClick={() => setDay(addDaysTz(day, 1, tz))} aria-label="Next day"><Icon name="chevR" /></button>
-          </div>
-          <button className="btn primary" onClick={() => setBookFor({ blank: true })}><Icon name="plus" /> Book a member</button>
-        </div>
+        <button className="btn primary" onClick={() => setBookFor({ blank: true })}><Icon name="plus" /> Book a member</button>
       </div>
 
+      <div className="week-bar card">
+        <button className="icon-btn" onClick={() => setDay(addDaysTz(day, -7, tz))} aria-label="Previous week"><Icon name="chevL" /></button>
+        <div className="week-days">
+          {days.map((d, i) => {
+            const n = week ? (byDay[dayKey(d, tz)] || []).length : null;
+            const sel = +d === +day;
+            return (
+              <button key={i} className={`week-day${sel ? ' on' : ''}${+d === +today ? ' today' : ''}`} onClick={() => setDay(d)}>
+                <span className="wd">{WEEKDAYS[i]}</span>
+                <span className="dn">{dayNum(d, tz)}</span>
+                <span className="cnt">{n == null ? '·' : n === 0 ? '—' : `${n} class${n === 1 ? '' : 'es'}`}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button className="icon-btn" onClick={() => setDay(addDaysTz(day, 7, tz))} aria-label="Next week"><Icon name="chevR" /></button>
+        <button className="btn sm" onClick={() => setDay(today)} disabled={isToday}>Today</button>
+      </div>
+
+      {sessions && sessions.length > 0 && (
+        <div className="day-stats">
+          <div><span>Classes</span><b>{sessions.length}</b></div>
+          <div><span>Booked</span><b>{totals.booked}{totals.seats ? <small> / {totals.seats} seats</small> : null}</b></div>
+          <div><span>Checked in</span><b>{totals.attended}<small> of {totals.booked}</small></b></div>
+          <div><span>Waitlist</span><b>{totals.waiting}</b></div>
+        </div>
+      )}
+
       {!sessions ? <Spinner full={false} /> : sessions.length === 0 ? (
-        <Empty title="No bookings for this day">Classes show up here as soon as members book them on your class calendars.</Empty>
+        <div className="card"><Empty title="No classes booked this day">Classes show up here as soon as members book them on your class calendars.</Empty></div>
       ) : (
         <div className="sessions">
           {sessions.map((s) => {
             const pct = s.capacity ? Math.min(100, Math.round((s.booked / s.capacity) * 100)) : 0;
+            const mins = s.endTime ? Math.round((new Date(s.endTime) - new Date(s.startTime)) / 60000) : null;
+            const left = s.capacity ? s.capacity - s.booked : null;
             return (
               <section className="card session" key={`${s.calendarId}${s.startTime}`}>
-                <div className="session-head">
-                  <div>
-                    <div className="session-time">{fmtTime(s.startTime, tz)}</div>
-                    <h3>{s.name}</h3>
-                  </div>
-                  <div className="session-meta">
-                    <div className="cap"><span>{s.booked}{s.capacity ? ` / ${s.capacity}` : ''}</span> booked{s.full && <Badge tone="warn">Full</Badge>}</div>
-                    {s.capacity && <div className="bar"><div style={{ width: `${pct}%` }} /></div>}
-                    <button className="btn sm" onClick={() => setBookFor({ calendarId: s.calendarId, startTime: s.startTime, name: s.name, full: s.full })}><Icon name="plus" size={14} /> Add</button>
-                  </div>
+                <div className="s-time">
+                  <b>{fmtTime(s.startTime, tz)}</b>
+                  {mins ? <span>{mins} min</span> : null}
                 </div>
-
-                <ul className="roster">
-                  {s.roster.map((r) => (
-                    <li key={r.bookingId} className={r.status}>
-                      <button className="who" onClick={() => onOpenMember(r.contactId)}>
-                        <Avatar name={r.name} size={30} />
-                        <span><strong>{r.name}</strong><small>{r.unlimited ? 'Unlimited' : r.owesCredit ? 'No credit — collect payment' : `${r.balance ?? 0} credits left`}</small></span>
-                      </button>
-                      <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>
-                      <div className="roster-actions">
-                        {r.status !== 'attended' && (
-                          <button className="btn sm good" disabled={busy === r.bookingId} onClick={() => act(r.bookingId, () => api.checkIn(r.bookingId), `${r.name.split(' ')[0]} checked in`)}>
-                            <Icon name="check" size={14} /> Check in
-                          </button>
-                        )}
-                        {r.status === 'booked' && (
-                          <>
-                            <button className="btn sm ghost" disabled={busy === r.bookingId} onClick={() => act(r.bookingId, () => api.noShow(r.bookingId), 'Marked no-show')}>No-show</button>
-                            <button className="icon-btn" title="Cancel booking" onClick={() => setCancelFor({ ...r, session: s })}><Icon name="x" /></button>
-                          </>
-                        )}
+                <div className="s-main">
+                  <div className="session-head">
+                    <div className="grow">
+                      <h3>{s.name}</h3>
+                      <div className="cap">
+                        {s.capacity && <div className="bar"><div style={{ width: `${pct}%` }} /></div>}
+                        <span><b>{s.booked}</b>{s.capacity ? ` / ${s.capacity}` : ''} booked</span>
+                        {s.full ? <Badge tone="warn">Full</Badge> : left != null ? <span className="muted small">{left} spot{left === 1 ? '' : 's'} left</span> : null}
+                        {s.attended > 0 && <span className="muted small">· {s.attended} checked in</span>}
                       </div>
-                    </li>
-                  ))}
-                </ul>
-
-                {s.waitlist.length > 0 && (
-                  <div className="waitlist">
-                    <h4><Icon name="list" size={14} /> Waitlist ({s.waitlist.length})</h4>
-                    <ol>
-                      {s.waitlist.map((w) => (
-                        <li key={w.id}>
-                          <button className="link" onClick={() => onOpenMember(w.contactId)}>{w.name}</button>
-                          <button className="icon-btn" title="Remove from waitlist" onClick={() => act(w.id, () => api.removeFromWaitlist(w.id), 'Removed from waitlist')}><Icon name="x" size={14} /></button>
-                        </li>
-                      ))}
-                    </ol>
+                    </div>
+                    <button className="btn sm" onClick={() => setBookFor({ calendarId: s.calendarId, startTime: s.startTime, name: s.name, full: s.full })}>
+                      <Icon name="plus" size={14} /> {s.full ? 'Add to waitlist' : 'Add member'}
+                    </button>
                   </div>
-                )}
+
+                  <ul className="roster">
+                    {s.roster.map((r) => (
+                      <li key={r.bookingId} className={r.status}>
+                        <button className="who" onClick={() => onOpenMember(r.contactId)}>
+                          <Avatar name={r.name} size={32} />
+                          <span><strong>{r.name}</strong><small className={r.owesCredit ? 'warn-text' : ''}>{r.unlimited ? 'Unlimited' : r.owesCredit ? 'No credit, collect payment' : `${r.balance ?? 0} credits left`}</small></span>
+                        </button>
+                        <div className="roster-actions">
+                          {r.status === 'attended' && <Badge tone="good"><Icon name="check" size={13} /> Checked in</Badge>}
+                          {r.status === 'noshow' && <Badge tone="crit">No-show</Badge>}
+                          {r.status !== 'attended' && (
+                            <button className="btn sm good" disabled={busy === r.bookingId} onClick={() => act(r.bookingId, () => api.checkIn(r.bookingId), `${r.name.split(' ')[0]} checked in`)}>
+                              <Icon name="check" size={14} /> Check in
+                            </button>
+                          )}
+                          {r.status === 'booked' && (
+                            <>
+                              <button className="btn sm ghost" disabled={busy === r.bookingId} title="Mark as no-show" onClick={() => act(r.bookingId, () => api.noShow(r.bookingId), 'Marked no-show')}>No-show</button>
+                              <button className="icon-btn" title="Cancel booking" aria-label="Cancel booking" onClick={() => setCancelFor({ ...r, session: s })}><Icon name="x" /></button>
+                            </>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {s.waitlist.length > 0 && (
+                    <div className="waitlist">
+                      <span className="wl-title"><Icon name="list" size={14} /> Waitlist</span>
+                      {s.waitlist.map((w, i) => (
+                        <span key={w.id} className="wl-chip">
+                          <b>{i + 1}</b>
+                          <button className="link" onClick={() => onOpenMember(w.contactId)}>{w.name}</button>
+                          <button className="icon-btn xs" title="Remove from waitlist" onClick={() => act(w.id, () => api.removeFromWaitlist(w.id), 'Removed from waitlist')}><Icon name="x" size={12} /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </section>
             );
           })}
