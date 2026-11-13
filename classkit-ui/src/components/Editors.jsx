@@ -11,6 +11,21 @@ const TYPE_LABEL = {
 };
 export const isClassType = (t) => /class/i.test(t || '');
 
+function Stepper({ label, unit, value, onChange, min = 0, step = 1 }) {
+  const set = (v) => onChange(Math.max(min, Number.isFinite(v) ? v : min));
+  return (
+    <div className="rule">
+      <span className="rule-label">{label}</span>
+      <div className="rule-ctl">
+        <button type="button" aria-label={`Less ${label}`} onClick={() => set(Number(value) - step)} disabled={Number(value) <= min}>−</button>
+        <input type="number" min={min} step={step} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
+        <button type="button" aria-label={`More ${label}`} onClick={() => set(Number(value) + step)}>+</button>
+        <span className="rule-unit">{unit}</span>
+      </div>
+    </div>
+  );
+}
+
 /** Pick which GHL calendars run on credits, with seats and credit cost per class. */
 export function CalendarsEditor({ calendars, onChange, onRefresh }) {
   const update = (i, patch) => onChange(calendars.map((c, j) => (j === i ? { ...c, ...patch } : c)));
@@ -45,9 +60,9 @@ export function CalendarsEditor({ calendars, onChange, onRefresh }) {
               </label>
               {c.enabled && (
                 <div className="cal-rules">
-                  <label>Up to <input className="num-input" type="number" min="1" value={c.capacity} onChange={(e) => update(i, { capacity: Number(e.target.value) })} /> people per class</label>
-                  <label>Each booking costs <input className="num-input" type="number" min="0" value={c.creditCost} onChange={(e) => update(i, { creditCost: Number(e.target.value) })} /> {c.creditCost === 1 ? 'credit' : 'credits'}</label>
-                  <label>Class lasts <input className="num-input" type="number" min="5" step="5" value={c.durationMins} onChange={(e) => update(i, { durationMins: Number(e.target.value) })} /> minutes</label>
+                  <Stepper label="Seats per class" unit="people" min={1} value={c.capacity} onChange={(v) => update(i, { capacity: v })} />
+                  <Stepper label="Cost per booking" unit={c.creditCost === 1 ? 'credit' : 'credits'} min={0} value={c.creditCost} onChange={(v) => update(i, { creditCost: v })} />
+                  <Stepper label="Class length" unit="min" min={5} step={5} value={c.durationMins} onChange={(v) => update(i, { durationMins: v })} />
                 </div>
               )}
             </div>

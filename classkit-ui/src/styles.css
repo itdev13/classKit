@@ -270,9 +270,18 @@ textarea { resize: vertical; }
 .cal-name small { color: var(--muted); font-size: 12px; }
 .cal-state { font-size: 12px; font-weight: 650; color: var(--muted); white-space: nowrap; }
 .cal-state.yes { color: var(--accent-dk); }
-.cal-rules { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 10px 14px 14px 44px; border-top: 1px dashed var(--line); color: var(--ink-2); }
-.cal-rules label { display: inline-flex; align-items: center; gap: 7px; }
-.cal-rules .num-input { width: 64px !important; padding: 5px 8px !important; }
+.cal-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px 14px 14px; margin: 0 6px 6px; border-radius: 9px; background: #f8f7fe; }
+.rule { display: flex; flex-direction: column; gap: 6px; }
+.rule-label { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.rule-ctl { display: flex; align-items: center; gap: 0; }
+.rule-ctl button { width: 30px; height: 32px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); font-size: 16px; line-height: 1; display: grid; place-items: center; }
+.rule-ctl button:first-child { border-radius: 8px 0 0 8px; }
+.rule-ctl button:nth-of-type(2) { border-radius: 0 8px 8px 0; }
+.rule-ctl button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-dk); }
+.rule-ctl button:disabled { opacity: .4; cursor: not-allowed; }
+.rule-ctl input { width: 52px !important; height: 32px; padding: 0 4px !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; text-align: center; font-weight: 700; -moz-appearance: textfield; }
+.rule-ctl input::-webkit-outer-spin-button, .rule-ctl input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rule-unit { margin-left: 8px; color: var(--muted); font-size: 13px; }
 .cal-help { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 12px 14px; border-radius: 12px; border: 1px dashed #cfcaea; background: #fbfaff; font-size: 13px; }
 .cal-help span { flex: 1 1 320px; color: var(--ink-2); }
 .wizard-foot { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
@@ -343,7 +352,7 @@ textarea { resize: vertical; }
 }
 @media (max-width: 600px) {
   .explain { grid-template-columns: 1fr; }
-  .cal-rules { padding-left: 14px; }
+  .cal-rules { grid-template-columns: 1fr; }
   .grid2, .grid3, .check-list { grid-template-columns: 1fr; }
   .topnav { flex-direction: column; align-items: stretch; gap: 10px; }
   .page { padding: 16px; }
