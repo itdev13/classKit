@@ -17,8 +17,8 @@ export default function MemberPicker({ value, onChange, notify }) {
     const t = setTimeout(async () => {
       setSearching(true);
       const [m, c] = await Promise.all([
-        api.members({ q: term }).then((r) => r.members.slice(0, 6)).catch(() => []),
-        term.length >= 2 ? api.searchContacts(term).then((r) => r.contacts).catch(() => []) : Promise.resolve([])
+        api.members({ q: term }).then((r) => (Array.isArray(r?.members) ? r.members.slice(0, 6) : [])).catch(() => []),
+        term.length >= 2 ? api.searchContacts(term).then((r) => (Array.isArray(r?.contacts) ? r.contacts : [])).catch(() => []) : Promise.resolve([])
       ]);
       setResults(m);
       setContacts(c);
