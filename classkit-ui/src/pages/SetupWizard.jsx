@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { CalendarsEditor, PolicyEditor, isClassType } from '../components/Editors.jsx';
-import { Field, Spinner } from '../components/ui.jsx';
+import { Field, Spinner, NumberInput } from '../components/ui.jsx';
 
 const STEPS = ['Class calendars', 'Booking rules', 'First package', 'Go live'];
 
@@ -83,8 +83,8 @@ export default function SetupWizard({ isAdmin, notify, onDone }) {
             <p className="muted">Link it to a HighLevel product so paying for it adds credits automatically. You can add more later.</p>
             <div className="grid3">
               <Field label="Name"><input value={pkg.name} onChange={(e) => setPkg({ ...pkg, name: e.target.value })} /></Field>
-              <Field label="Credits"><input type="number" min="1" value={pkg.credits} onChange={(e) => setPkg({ ...pkg, credits: Number(e.target.value) })} /></Field>
-              <Field label="Valid for (days)"><input type="number" min="1" value={pkg.validityDays} onChange={(e) => setPkg({ ...pkg, validityDays: Number(e.target.value) })} /></Field>
+              <Field label="Credits"><NumberInput min="1" value={pkg.credits} onChange={(v) => setPkg({ ...pkg, credits: v })} /></Field>
+              <Field label="Valid for (days)"><NumberInput min="1" value={pkg.validityDays} onChange={(v) => setPkg({ ...pkg, validityDays: v })} /></Field>
             </div>
             <Field label="HighLevel product">
               <select value={pkg.ghlProductIds[0] || ''} onChange={(e) => setPkg({ ...pkg, ghlProductIds: e.target.value ? [e.target.value] : [] })}>

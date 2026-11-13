@@ -91,6 +91,39 @@ export function Field({ label, hint, children }) {
   );
 }
 
+/**
+ * Number box that can be emptied while typing (no stuck "0", no "01").
+ * Calls onChange(number) for every valid value; on blur an empty or too-small value snaps back to `min`.
+ */
+export function NumberInput({ value, onChange, min, max, ...rest }) {
+  const [text, setText] = React.useState(value ?? '');
+  React.useEffect(() => {
+    setText((t) => (t !== '' && Number(t) === Number(value) ? t : (value ?? '')));
+  }, [value]);
+  const lo = min != null ? Number(min) : null;
+  const hi = max != null ? Number(max) : null;
+  return (
+    <input
+      type="number" inputMode="numeric" min={min} max={max} {...rest}
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setText(raw);
+        if (raw !== '' && Number.isFinite(Number(raw))) onChange(Number(raw));
+      }}
+      onBlur={(e) => {
+        let n = Number(text);
+        if (text === '' || !Number.isFinite(n)) n = lo ?? 0;
+        if (lo != null && n < lo) n = lo;
+        if (hi != null && n > hi) n = hi;
+        setText(String(n));
+        if (n !== Number(value)) onChange(n);
+        rest.onBlur?.(e);
+      }}
+    />
+  );
+}
+
 export function Toggle({ checked, onChange, label }) {
   return (
     <label className="toggle">

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime, fromNow, isUnlimited, money } from '../lib/format.js';
-import { Avatar, Badge, Credits, Empty, Field, Icon, Modal, Spinner } from '../components/ui.jsx';
+import { Avatar, Badge, Credits, Empty, Field, Icon, Modal, Spinner, NumberInput } from '../components/ui.jsx';
 import MemberPicker from '../components/MemberPicker.jsx';
 
 const FILTERS = [
@@ -220,7 +220,7 @@ function AdjustModal({ contactId, name, notify, onClose, onDone }) {
         <button className="icon-btn" onClick={() => setDelta((d) => (d + 1 === 0 ? 1 : d + 1))} aria-label="More"><Icon name="plus" /></button>
       </div>
       <Field label="Reason" hint="Required. Shows in the member's credit history."><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Class cancelled by studio" autoFocus /></Field>
-      {delta > 0 && <Field label="Valid for (days)"><input type="number" min="1" value={days} onChange={(e) => setDays(Number(e.target.value))} /></Field>}
+      {delta > 0 && <Field label="Valid for (days)"><NumberInput min="1" value={days} onChange={(v) => setDays(v)} /></Field>}
     </Modal>
   );
 }

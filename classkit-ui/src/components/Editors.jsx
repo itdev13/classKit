@@ -1,5 +1,5 @@
 import React from 'react';
-import { Field, Toggle } from './ui.jsx';
+import { Field, Toggle, NumberInput } from './ui.jsx';
 
 const TYPE_LABEL = {
   class_booking: 'Group class',
@@ -12,13 +12,13 @@ const TYPE_LABEL = {
 export const isClassType = (t) => /class/i.test(t || '');
 
 function Stepper({ label, unit, value, onChange, min = 0, step = 1 }) {
-  const set = (v) => onChange(Math.max(min, Number.isFinite(v) ? v : min));
+  const set = (v) => onChange(Number.isFinite(v) ? Math.max(min, v) : min);
   return (
     <div className="rule">
       <span className="rule-label">{label}</span>
       <div className="rule-ctl">
         <button type="button" aria-label={`Less ${label}`} onClick={() => set(Number(value) - step)} disabled={Number(value) <= min}>−</button>
-        <input type="number" min={min} step={step} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
+        <NumberInput min={min} step={step} value={value} onChange={set} aria-label={label} />
         <button type="button" aria-label={`More ${label}`} onClick={() => set(Number(value) + step)}>+</button>
         <span className="rule-unit">{unit}</span>
       </div>
@@ -78,20 +78,20 @@ export function CalendarsEditor({ calendars, onChange, onRefresh }) {
 /** Studio booking rules. */
 export function PolicyEditor({ policy, onChange }) {
   const set = (k, v) => onChange({ ...policy, [k]: v });
-  const num = (k) => (e) => set(k, Number(e.target.value));
+  const num = (k) => (v) => set(k, v);
   return (
     <div className="stack">
       <div className="grid2">
         <Field label="Free cancellation window (hours)" hint="Cancel earlier than this → credit back. Later → the studio keeps it.">
-          <input type="number" min="0" value={policy.cancelWindowHours} onChange={num('cancelWindowHours')} />
+          <NumberInput min="0" value={policy.cancelWindowHours} onChange={num('cancelWindowHours')} />
         </Field>
         <Field label="Low-credit alert at" hint="Text the member (and fire the workflow trigger) when they drop to this many.">
-          <input type="number" min="0" value={policy.lowCreditThreshold} onChange={num('lowCreditThreshold')} />
+          <NumberInput min="0" value={policy.lowCreditThreshold} onChange={num('lowCreditThreshold')} />
         </Field>
-        <Field label="Expiry reminder (days before)" hint="0 turns the reminder off."><input type="number" min="0" value={policy.expiryReminderDays} onChange={num('expiryReminderDays')} /></Field>
-        <Field label="Auto no-show (minutes after class)" hint="Not checked in by then → marked no-show. 0 turns it off."><input type="number" min="0" value={policy.autoNoShowMinutes} onChange={num('autoNoShowMinutes')} /></Field>
-        <Field label="Manual credits valid for (days)"><input type="number" min="1" value={policy.defaultValidityDays} onChange={num('defaultValidityDays')} /></Field>
-        <Field label="Kiosk check-in opens (minutes before class)"><input type="number" min="0" value={policy.checkInOpensMins} onChange={num('checkInOpensMins')} /></Field>
+        <Field label="Expiry reminder (days before)" hint="0 turns the reminder off."><NumberInput min="0" value={policy.expiryReminderDays} onChange={num('expiryReminderDays')} /></Field>
+        <Field label="Auto no-show (minutes after class)" hint="Not checked in by then → marked no-show. 0 turns it off."><NumberInput min="0" value={policy.autoNoShowMinutes} onChange={num('autoNoShowMinutes')} /></Field>
+        <Field label="Manual credits valid for (days)"><NumberInput min="1" value={policy.defaultValidityDays} onChange={num('defaultValidityDays')} /></Field>
+        <Field label="Kiosk check-in opens (minutes before class)"><NumberInput min="0" value={policy.checkInOpensMins} onChange={num('checkInOpensMins')} /></Field>
       </div>
       <Toggle checked={policy.blockWithoutCredits} onChange={(v) => set('blockWithoutCredits', v)} label="Cancel bookings from members with no credits and text them a buy link" />
       <Toggle checked={policy.waitlistEnabled} onChange={(v) => set('waitlistEnabled', v)} label="Waitlist: fill freed seats automatically, first come first served" />
