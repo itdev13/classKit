@@ -327,3 +327,18 @@ test('member search finds HighLevel contacts who are not members yet', async () 
   assert.equal((await call('GET', '/api/members/contacts?q=testdd')).body.contacts.length, 0);
   assert.equal((await call('GET', '/api/members?q=testdd')).body.members.length, 1);
 });
+
+test('time zone and name are filled from HighLevel when missing; an owner-set zone is kept', async () => {
+  await Workspace.updateOne({ locationId: LOC }, { timezone: 'UTC', timezoneLocked: false, locationName: null, locationSyncedAt: null });
+  await call('POST', '/api/auth/verify', { locationId: LOC }, { auth: false });
+  let ws = await Workspace.findOne({ locationId: LOC });
+  assert.equal(ws.timezone, 'America/New_York');
+  assert.equal(ws.locationName, 'Demo Studio');
+  assert.equal((await call('PUT', '/api/settings', { timezone: 'Not/AZone' })).status, 400);
+  await call('PUT', '/api/settings', { timezone: 'UTC' });
+  await Workspace.updateOne({ locationId: LOC }, { locationSyncedAt: null });
+  await call('POST', '/api/auth/verify', { locationId: LOC }, { auth: false });
+  ws = await Workspace.findOne({ locationId: LOC });
+  assert.equal(ws.timezone, 'UTC');
+  assert.equal(ws.timezoneLocked, true);
+});

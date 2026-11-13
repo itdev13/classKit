@@ -61,7 +61,12 @@ router.put('/', requireAdmin, wrap(async (req, res) => {
   }
   if ('buyUrl' in b) ws.buyUrl = String(b.buyUrl || '').trim();
   if (b.brand) ws.brand = { ...ws.brand.toObject?.() ?? ws.brand, ...b.brand };
-  if ('timezone' in b && b.timezone) ws.timezone = String(b.timezone);
+  if ('timezone' in b && b.timezone && String(b.timezone) !== ws.timezone) {
+    const tz = String(b.timezone).trim();
+    if (!require('../services/locationService').validTz(tz)) return res.status(400).json({ success: false, error: 'Unknown time zone. Use a name like America/New_York.' });
+    ws.timezone = tz;
+    ws.timezoneLocked = true;
+  }
   if ('currency' in b) {
     const c = currencyService.normalize(b.currency);
     if (b.currency && !c) return res.status(400).json({ success: false, error: 'Unknown currency code.' });

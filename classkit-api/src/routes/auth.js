@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const currencyService = require('../services/currencyService');
+const locationService = require('../services/locationService');
 const CryptoJS = require('crypto-js');
 const OAuthToken = require('../models/OAuthToken');
 const CompanyLocation = require('../models/CompanyLocation');
@@ -53,7 +54,7 @@ router.post('/verify', wrap(async (req, res) => {
   );
   if (!ws.installerUserId && userId) { ws.installerUserId = userId; await ws.save(); }
 
-  const currency = await currencyService.detectQuick(ws);
+  const [currency] = await Promise.all([currencyService.detectQuick(ws), locationService.syncQuick(ws)]);
 
   const isAdmin = !ws.setupComplete || (userId && (ws.installerUserId === userId || ws.adminUserIds.includes(userId))) ||
     String(ctx?.role || '').toLowerCase() === 'admin' || String(ctx?.type || '').toLowerCase() === 'agency' || !ctx;

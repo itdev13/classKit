@@ -58,6 +58,7 @@ async function summary(ws, days = 30) {
   const activeMembers = await Member.countDocuments({ locationId, $or: [{ balance: { $gt: 0 } }, { unlimitedUntil: { $gt: now } }] });
   const atRisk = await Member.find({
     locationId, $or: [{ balance: { $gt: 0 } }, { unlimitedUntil: { $gt: now } }],
+    createdAt: { $lt: new Date(now.getTime() - 14 * DAY) },
     $and: [{ $or: [{ lastVisitAt: null }, { lastVisitAt: { $lt: new Date(now.getTime() - 14 * DAY) } }] }]
   }).sort({ lastVisitAt: 1 }).limit(10).lean();
 
