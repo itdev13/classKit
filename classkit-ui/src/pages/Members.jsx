@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime, fromNow, isUnlimited, money } from '../lib/format.js';
 import { Avatar, Badge, Credits, Empty, Field, Icon, Modal, Spinner, NumberInput } from '../components/ui.jsx';
@@ -22,6 +22,19 @@ export default function Members({ tz, notify, openId, setOpenId }) {
     api.members({ q, filter }).then(setData).catch((e) => notify(e.message, true));
   }, [q, filter, notify]);
   useEffect(() => { const t = setTimeout(load, 200); return () => clearTimeout(t); }, [load]);
+
+  // Open the first member by default, and again whenever a search/filter leaves the open member out of the list.
+  const lastQuery = useRef(null);
+  useEffect(() => {
+    if (!data) return;
+    const key = `${q}|${filter}`;
+    const queryChanged = lastQuery.current !== null && lastQuery.current !== key;
+    lastQuery.current = key;
+    const list = data.members || [];
+    const inList = openId && list.some((m) => m.contactId === openId);
+    if (!openId) { if (list.length) setOpenId(list[0].contactId); return; }
+    if (queryChanged && !inList) setOpenId(list.length ? list[0].contactId : null);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="page split">
