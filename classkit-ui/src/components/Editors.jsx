@@ -1,25 +1,62 @@
 import React from 'react';
 import { Field, Toggle } from './ui.jsx';
 
+const TYPE_LABEL = {
+  class_booking: 'Group class',
+  service_booking: 'Service booking',
+  event: 'Event',
+  round_robin: 'Team / round robin',
+  collective: 'Collective',
+  personal: 'One-on-one'
+};
+export const isClassType = (t) => /class/i.test(t || '');
+
 /** Pick which GHL calendars run on credits, with seats and credit cost per class. */
-export function CalendarsEditor({ calendars, onChange }) {
+export function CalendarsEditor({ calendars, onChange, onRefresh }) {
   const update = (i, patch) => onChange(calendars.map((c, j) => (j === i ? { ...c, ...patch } : c)));
-  if (!calendars.length) return <p className="warn-text small">No calendars found. Create a Class Booking calendar in HighLevel first.</p>;
+  const on = calendars.filter((c) => c.enabled).length;
+  const hasClassType = calendars.some((c) => isClassType(c.calendarType));
+
+  const help = (
+    <div className="cal-help">
+      <strong>Don't see your classes?</strong>
+      <span>In HighLevel go to <b>Calendars → New calendar → Class Booking</b>, create one (for example "Yoga, Mon 7am"), then come back here.</span>
+      {onRefresh && <button type="button" className="btn sm" onClick={onRefresh}>Refresh list</button>}
+    </div>
+  );
+
+  if (!calendars.length) return <div className="stack"><p className="warn-text">This sub-account has no calendars yet.</p>{help}</div>;
+
   return (
-    <table className="table cal-table">
-      <thead><tr><th>Uses credits</th><th>Calendar</th><th className="num">Seats</th><th className="num">Credits per class</th><th className="num">Minutes</th></tr></thead>
-      <tbody>
-        {calendars.map((c, i) => (
-          <tr key={c.calendarId} className={c.enabled ? '' : 'dim'}>
-            <td><Toggle checked={c.enabled} onChange={(v) => update(i, { enabled: v })} /></td>
-            <td><strong>{c.name}</strong>{c.calendarType && <small className="muted block">{String(c.calendarType).replace(/_/g, ' ')}</small>}</td>
-            <td className="num"><input className="num-input" type="number" min="1" value={c.capacity} disabled={!c.enabled} onChange={(e) => update(i, { capacity: Number(e.target.value) })} /></td>
-            <td className="num"><input className="num-input" type="number" min="0" value={c.creditCost} disabled={!c.enabled} onChange={(e) => update(i, { creditCost: Number(e.target.value) })} /></td>
-            <td className="num"><input className="num-input" type="number" min="5" step="5" value={c.durationMins} disabled={!c.enabled} onChange={(e) => update(i, { durationMins: Number(e.target.value) })} /></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="stack">
+      <div className="cal-list">
+        {calendars.map((c, i) => {
+          const suggested = isClassType(c.calendarType);
+          return (
+            <div key={c.calendarId} className={`cal-card${c.enabled ? ' on' : ''}`}>
+              <label className="cal-top">
+                <input type="checkbox" checked={!!c.enabled} onChange={(e) => update(i, { enabled: e.target.checked })} />
+                <span className="cal-name">
+                  <strong>{c.name}</strong>
+                  <small>{TYPE_LABEL[c.calendarType] || String(c.calendarType || 'Calendar').replace(/_/g, ' ')}</small>
+                </span>
+                {suggested && !c.enabled && <span className="badge accent">Looks like a class</span>}
+                <span className={`cal-state ${c.enabled ? 'yes' : ''}`}>{c.enabled ? 'Uses credits' : 'Free – not tracked'}</span>
+              </label>
+              {c.enabled && (
+                <div className="cal-rules">
+                  <label>Up to <input className="num-input" type="number" min="1" value={c.capacity} onChange={(e) => update(i, { capacity: Number(e.target.value) })} /> people per class</label>
+                  <label>Each booking costs <input className="num-input" type="number" min="0" value={c.creditCost} onChange={(e) => update(i, { creditCost: Number(e.target.value) })} /> {c.creditCost === 1 ? 'credit' : 'credits'}</label>
+                  <label>Class lasts <input className="num-input" type="number" min="5" step="5" value={c.durationMins} onChange={(e) => update(i, { durationMins: Number(e.target.value) })} /> minutes</label>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="small muted">{on ? `${on} calendar${on > 1 ? 's' : ''} will use credits. Bookings on all others stay free and untouched.` : 'Tick the calendars where people book a class. Leave 1-on-1 services, consultations and calls unticked.'}</p>
+      {!hasClassType && help}
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
-import { CalendarsEditor, PolicyEditor } from '../components/Editors.jsx';
+import { CalendarsEditor, PolicyEditor, isClassType } from '../components/Editors.jsx';
 import { Field, Spinner } from '../components/ui.jsx';
 
 const STEPS = ['Class calendars', 'Booking rules', 'First package', 'Go live'];
@@ -13,9 +13,13 @@ export default function SetupWizard({ isAdmin, notify, onDone }) {
   const [products, setProducts] = useState([]);
   const [saving, setSaving] = useState(false);
 
+  const loadCalendars = () => api.calendars()
+    .then((r) => setCalendars(r.calendars.map((c) => ({ ...c, enabled: c.enabled || isClassType(c.calendarType) }))))
+    .catch((e) => { notify(e.message, true); setCalendars([]); });
+
   useEffect(() => {
     api.settings().then((r) => setSettings(r.settings)).catch((e) => notify(e.message, true));
-    api.calendars().then((r) => setCalendars(r.calendars.map((c) => ({ ...c, enabled: c.enabled || /class/i.test(c.calendarType || '') })))).catch((e) => { notify(e.message, true); setCalendars([]); });
+    loadCalendars();
     api.products().then((r) => setProducts(r.products)).catch(() => {});
   }, [notify]);
 
@@ -52,9 +56,16 @@ export default function SetupWizard({ isAdmin, notify, onDone }) {
       <div className="card wizard-body">
         {step === 0 && (
           <>
-            <h2>Which calendars are your classes?</h2>
-            <p className="muted">Bookings on these calendars use credits. Leave consultation and other calendars off.</p>
-            <CalendarsEditor calendars={calendars} onChange={setCalendars} />
+            <div>
+              <h2>Which calendars are your classes?</h2>
+              <p className="muted">Pick the calendars where members book a class. Every booking there takes credits from the member's pack.</p>
+            </div>
+            <div className="explain">
+              <div><span className="explain-n">1</span><b>Priya buys a 10-class pack</b><small>She now has 10 credits</small></div>
+              <div><span className="explain-n">2</span><b>She books "Yoga, Mon 7am"</b><small>1 credit is taken, so 9 left</small></div>
+              <div><span className="explain-n">3</span><b>Class is full?</b><small>She joins the waitlist</small></div>
+            </div>
+            <CalendarsEditor calendars={calendars} onChange={setCalendars} onRefresh={() => { setCalendars(null); loadCalendars(); }} />
           </>
         )}
         {step === 1 && (

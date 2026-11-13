@@ -72,7 +72,7 @@ export default function Settings({ notify }) {
 
       <section className="card">
         <h3>Class calendars</h3>
-        <CalendarsEditor calendars={calendars} onChange={setCalendars} />
+        <CalendarsEditor calendars={calendars} onChange={setCalendars} onRefresh={() => api.calendars().then((r) => setCalendars(r.calendars)).catch((e) => notify(e.message, true))} />
       </section>
 
       <section className="card">
