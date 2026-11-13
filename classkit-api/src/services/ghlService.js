@@ -203,14 +203,14 @@ class GHLService {
   /**
    * Authenticated GHL API request with auto-refresh on 401 and exponential backoff on 429.
    */
-  async apiRequest(method, endpoint, locationId, data = null, params = null, retryCount = 0) {
+  async apiRequest(method, endpoint, locationId, data = null, params = null, retryCount = 0, version = null) {
     if (isMock()) return mock.respond(method, endpoint, data, params);
     try {
       const accessToken = await this.getValidToken(locationId);
       const config = {
         method,
         url: `${this.baseURL}${endpoint}`,
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', Version: this.version }
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', Version: version || this.version }
       };
       if (data) config.data = data;
       if (params) config.params = params;
@@ -224,7 +224,7 @@ class GHLService {
 
         const expiresIn = tokenDoc.expiresAt - Date.now();
         if (expiresIn > 23 * 60 * 60 * 1000) {
-          return this.apiRequest(method, endpoint, locationId, data, params, retryCount + 1);
+          return this.apiRequest(method, endpoint, locationId, data, params, retryCount + 1, version);
         }
         try {
           const fresh = await this.refreshAccessToken(tokenDoc.refreshToken);
@@ -240,7 +240,7 @@ class GHLService {
             throw refreshErr;
           }
         }
-        return this.apiRequest(method, endpoint, locationId, data, params, retryCount + 1);
+        return this.apiRequest(method, endpoint, locationId, data, params, retryCount + 1, version);
       }
 
       // 429 → exponential backoff, up to 3 retries.
@@ -250,7 +250,7 @@ class GHLService {
         const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : backoffMs;
         logger.warn(`Rate limited (429), retrying in ${waitMs}ms`, { endpoint });
         await new Promise((r) => setTimeout(r, waitMs));
-        return this.apiRequest(method, endpoint, locationId, data, params, retryCount + 1);
+        return this.apiRequest(method, endpoint, locationId, data, params, retryCount + 1, version);
       }
 
       logger.error(`API request failed: ${method} ${endpoint}`, {
@@ -345,16 +345,40 @@ class GHLService {
   }
 
   async createAppointment(locationId, { calendarId, contactId, startTime, endTime, title }) {
-    const res = await this.apiRequest('POST', '/calendars/events/appointments', locationId, {
+    const base = {
       calendarId, locationId, contactId,
       startTime: new Date(startTime).toISOString(),
       endTime: endTime ? new Date(endTime).toISOString() : undefined,
       title: title || undefined,
       appointmentStatus: 'confirmed',
       ignoreFreeSlotValidation: true,
+      ignoreDateRange: true,
       toNotify: true
-    });
-    return res.appointment || res;
+    };
+    const ok = (res) => res.appointment || res;
+    try {
+      return ok(await this.apiRequest('POST', '/calendars/events/appointments', locationId, base));
+    } catch (first) {
+      const st = first.response?.status;
+      if (!st || st < 400 || st >= 500 || st === 401) throw first;
+      logger.warn('createAppointment rejected, retrying with appointments API version + calendar host', {
+        status: st, body: JSON.stringify(first.response?.data || {}).slice(0, 600)
+      });
+      // Class/event calendars can require a host, and the appointments endpoint is documented on 2021-04-15.
+      let assignedUserId;
+      try {
+        const cal = await this.apiRequest('GET', `/calendars/${calendarId}`, locationId);
+        const c = cal.calendar || cal;
+        const members = c.teamMembers || [];
+        assignedUserId = (members.find((m) => m.isPrimary) || members[0])?.userId;
+      } catch (_) { /* best effort */ }
+      try {
+        return ok(await this.apiRequest('POST', '/calendars/events/appointments', locationId, { ...base, assignedUserId }, null, 0, '2021-04-15'));
+      } catch (second) {
+        logger.warn('createAppointment retry failed', { status: second.response?.status, body: JSON.stringify(second.response?.data || {}).slice(0, 600) });
+        throw second;
+      }
+    }
   }
 
   async updateAppointmentStatus(locationId, appointmentId, appointmentStatus) {
