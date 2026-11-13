@@ -48,3 +48,39 @@ export function initials(name = '') {
 export function isUnlimited(m) { return !!(m?.unlimitedUntil && new Date(m.unlimitedUntil) > new Date()); }
 export function startOfDay(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 export function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+
+// ── Studio time zone helpers (the studio's day, not the viewer's computer's day) ──
+function tzParts(date, tz) {
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: tz || undefined, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const p = Object.fromEntries(f.formatToParts(date).filter((x) => x.type !== 'literal').map((x) => [x.type, Number(x.value)]));
+  return p;
+}
+/** Milliseconds the zone is ahead of UTC at `date`. */
+function tzOffset(date, tz) {
+  const p = tzParts(date, tz);
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(date.getTime() / 1000) * 1000;
+}
+/** The instant that is wall-clock y-m-d h:m in `tz`. */
+export function zonedTime(y, m, d, h = 0, min = 0, tz) {
+  let t = Date.UTC(y, m - 1, d, h, min);
+  for (let i = 0; i < 2; i++) t = Date.UTC(y, m - 1, d, h, min) - tzOffset(new Date(t), tz);
+  return new Date(t);
+}
+export function startOfDayTz(date = new Date(), tz) {
+  const p = tzParts(date, tz);
+  return zonedTime(p.year, p.month, p.day, 0, 0, tz);
+}
+export function addDaysTz(day, n, tz) {
+  return startOfDayTz(new Date(day.getTime() + n * 864e5 + 12 * 3600e3), tz);
+}
+/** 'YYYY-MM-DDTHH:mm' for a datetime-local input, in the studio's zone. */
+export function toZonedInput(date, tz) {
+  const p = tzParts(date, tz);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+}
+export function fromZonedInput(value, tz) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value || '');
+  if (!m) return null;
+  return zonedTime(+m[1], +m[2], +m[3], +m[4], +m[5], tz);
+}

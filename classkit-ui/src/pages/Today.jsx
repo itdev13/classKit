@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
-import { fmtTime, fmtDay, startOfDay, addDays, isUnlimited } from '../lib/format.js';
+import { fmtTime, fmtDay, isUnlimited, startOfDayTz, addDaysTz, toZonedInput, fromZonedInput } from '../lib/format.js';
 import { Avatar, Badge, Empty, Icon, Modal, Spinner, Field } from '../components/ui.jsx';
 import MemberPicker from '../components/MemberPicker.jsx';
 
@@ -11,7 +11,7 @@ const STATUS = {
 };
 
 export default function Today({ tz, notify, onOpenMember }) {
-  const [day, setDay] = useState(startOfDay());
+  const [day, setDay] = useState(() => startOfDayTz(new Date(), tz));
   const [sessions, setSessions] = useState(null);
   const [busy, setBusy] = useState(null);
   const [cancelFor, setCancelFor] = useState(null);
@@ -19,10 +19,10 @@ export default function Today({ tz, notify, onOpenMember }) {
 
   const load = useCallback(async () => {
     try {
-      const r = await api.classes(day, addDays(day, 1));
+      const r = await api.classes(day, addDaysTz(day, 1, tz));
       setSessions(r.sessions);
     } catch (e) { notify(e.message, true); setSessions([]); }
-  }, [day, notify]);
+  }, [day, tz, notify]);
 
   useEffect(() => { setSessions(null); load(); }, [load]);
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function Today({ tz, notify, onOpenMember }) {
     try { await fn(); notify(ok); await load(); } catch (e) { notify(e.message, true); } finally { setBusy(null); }
   };
 
-  const isToday = +day === +startOfDay();
+  const isToday = +day === +startOfDayTz(new Date(), tz);
   const totals = (sessions || []).reduce((a, s) => ({ booked: a.booked + s.booked, attended: a.attended + s.attended }), { booked: 0, attended: 0 });
 
   return (
@@ -49,9 +49,9 @@ export default function Today({ tz, notify, onOpenMember }) {
         </div>
         <div className="row gap">
           <div className="seg">
-            <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Previous day"><Icon name="chevL" /></button>
-            <button className="btn sm ghost" onClick={() => setDay(startOfDay())} disabled={isToday}>Today</button>
-            <button className="icon-btn" onClick={() => setDay(addDays(day, 1))} aria-label="Next day"><Icon name="chevR" /></button>
+            <button className="icon-btn" onClick={() => setDay(addDaysTz(day, -1, tz))} aria-label="Previous day"><Icon name="chevL" /></button>
+            <button className="btn sm ghost" onClick={() => setDay(startOfDayTz(new Date(), tz))} disabled={isToday}>Today</button>
+            <button className="icon-btn" onClick={() => setDay(addDaysTz(day, 1, tz))} aria-label="Next day"><Icon name="chevR" /></button>
           </div>
           <button className="btn primary" onClick={() => setBookFor({ blank: true })}><Icon name="plus" /> Book a member</button>
         </div>
@@ -150,8 +150,7 @@ function BookModal({ target, day, tz, notify, onClose, onDone }) {
   const [calendarId, setCalendarId] = useState(target.calendarId || '');
   const [time, setTime] = useState(() => {
     const d = target.startTime ? new Date(target.startTime) : new Date(day.getTime() + 18 * 3600e3);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return toZonedInput(d, tz);
   });
   const [saving, setSaving] = useState(false);
   const [full, setFull] = useState(!!target.full);
@@ -166,7 +165,7 @@ function BookModal({ target, day, tz, notify, onClose, onDone }) {
   }, [target.blank]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // While someone is typing a date the input can hold a partial/empty value: never let that throw.
-  const picked = time ? new Date(time) : null;
+  const picked = time ? fromZonedInput(time, tz) : null;
   const validTime = !!target.startTime || (picked && !Number.isNaN(picked.getTime()));
   const startTime = target.startTime || (validTime ? picked.toISOString() : null);
 
@@ -206,7 +205,7 @@ function BookModal({ target, day, tz, notify, onClose, onDone }) {
               {calendars.map((c) => <option key={c.calendarId} value={c.calendarId}>{c.name}</option>)}
             </select>
           </Field>
-          <Field label="Start time"><input type="datetime-local" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
+          <Field label="Start time" hint={tz ? `Studio time (${tz.replace(/_/g, ' ')})` : undefined}><input type="datetime-local" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
         </div>
       )}
       {member && <p className="muted small">{member.name}: {isUnlimited(member) ? 'Unlimited membership' : `${member.balance} credits`}</p>}
