@@ -68,11 +68,11 @@ export default function MemberPicker({ value, onChange, notify }) {
       <ul className="pick-list">
         {results.length > 0 && <li className="pick-group">Members</li>}
         {results.map((m) => (
-          <li key={m.contactId}><button onClick={() => onChange(m)}><Avatar name={m.name} size={28} /><span>{m.name}<small>{m.phone || m.email}</small></span><Credits member={m} /></button></li>
+          <li key={m.contactId}><button onClick={() => onChange(m)}><Avatar name={m.name} size={34} /><span className="pick-text"><strong>{m.name}</strong><small>{m.phone || m.email || 'No contact details'}</small></span><Credits member={m} /></button></li>
         ))}
         {contacts.length > 0 && <li className="pick-group">HighLevel contacts</li>}
         {contacts.map((c) => (
-          <li key={c.contactId}><button onClick={() => pickContact(c)}><Avatar name={c.name} size={28} /><span>{c.name}<small>{c.phone || c.email}</small></span><span className="badge muted">0 credits</span></button></li>
+          <li key={c.contactId}><button onClick={() => pickContact(c)}><Avatar name={c.name} size={34} /><span className="pick-text"><strong>{c.name}</strong><small>{c.phone || c.email || 'No contact details'}</small></span><span className="badge muted">Not a member yet</span></button></li>
         ))}
         {!results.length && !contacts.length && (
           <li className="muted small pad">{searching ? 'Searching…' : q.trim().length < 2 ? 'Type a name, phone or email to search your contacts.' : 'No contact found. Add them as a new member below.'}</li>

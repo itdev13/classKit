@@ -26,7 +26,7 @@ export default function Schedule({ slug }) {
   const { studio } = data;
 
   return (
-    <div className="public" style={{ '--brand': studio.color }}>
+    <div className={`public${new URLSearchParams(window.location.search).has('embed') ? ' embed' : ''}`} style={{ '--brand': studio.color }}>
       <header className="public-head">
         {studio.logoUrl ? <img src={studio.logoUrl} alt="" /> : <div className="kiosk-mark">{studio.name[0]}</div>}
         <div><h1>{studio.name}</h1><p>Class schedule · next 7 days</p></div>

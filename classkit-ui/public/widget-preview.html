@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Widget preview</title>
+  <style>
+    body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #14112b; background: #f6f5fb; }
+    .site { max-width: 760px; margin: 0 auto; padding: 48px 20px; }
+    .bar { height: 14px; border-radius: 7px; background: #e4e1f2; margin: 14px 0; }
+    .bar.short { width: 60%; }
+    .note { padding: 14px 16px; border-radius: 12px; background: #ecebfd; color: #4536b8; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="site">
+    <p class="note">This is a sample website. The floating <b>Book a class</b> button in the corner is your ClassKit widget, exactly as visitors will see it.</p>
+    <h1>Your studio website</h1>
+    <div class="bar"></div><div class="bar"></div><div class="bar short"></div>
+    <div class="bar"></div><div class="bar short"></div>
+  </div>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var schedule = q.get('schedule') || '';
+      if (!/^https?:\/\//.test(schedule)) return;
+      var s = document.createElement('script');
+      s.src = '/widget.js';
+      s.setAttribute('data-schedule', schedule);
+      var c = q.get('color');
+      if (c && /^#[0-9a-f]{3,8}$/i.test(c)) s.setAttribute('data-color', c);
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { setCurrency, currencySymbol, COMMON_CURRENCIES } from '../lib/format.js';
 import { api } from '../lib/api.js';
 import { CalendarsEditor, PolicyEditor } from '../components/Editors.jsx';
-import { CopyLink, Field, Spinner } from '../components/ui.jsx';
+import { CopyLink, Field, Icon, Spinner } from '../components/ui.jsx';
 
 const TEMPLATE_LABELS = {
   purchased: 'Package purchased',
@@ -28,6 +28,37 @@ const TRIGGERS = [
   ['ClassKit: booking blocked', 'Follow up with a pack offer'],
   ['ClassKit: waitlist promoted', 'Confirmation, directions']
 ];
+
+function EmbedCodes({ scheduleUrl, color, notify }) {
+  const [kind, setKind] = useState('widget');
+  const origin = (() => { try { return new URL(scheduleUrl).origin; } catch { return window.location.origin; } })();
+  const brand = /^#[0-9a-f]{3,8}$/i.test(color || '') ? color : '#5B4BDB';
+  const codes = {
+    widget: `<script src="${origin}/widget.js" data-schedule="${scheduleUrl}" data-label="Book a class" data-color="${brand}" async></script>`,
+    inline: `<iframe src="${scheduleUrl}?embed=1" title="Class schedule" style="width:100%;max-width:760px;height:720px;border:0;border-radius:16px" loading="lazy"></iframe>`,
+    link: scheduleUrl
+  };
+  const hints = {
+    widget: 'A floating “Book a class” button in the corner of every page. Opens your schedule in a pop-up, full screen on phones.',
+    inline: 'Shows the schedule inside a page section, e.g. a “Classes” page.',
+    link: 'A plain link for buttons, Instagram bio, WhatsApp or emails.'
+  };
+  return (
+    <div className="embed-box">
+      <div className="embed-tabs" role="tablist">
+        {[['widget', 'Floating button'], ['inline', 'Inline embed'], ['link', 'Link']].map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={kind === k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{label}</button>
+        ))}
+      </div>
+      <p className="small muted">{hints[kind]}</p>
+      <pre>{codes[kind]}</pre>
+      <div className="row gap">
+        <button className="btn sm primary" onClick={() => { navigator.clipboard?.writeText(codes[kind]); notify('Code copied'); }}><Icon name="copy" size={14} /> Copy code</button>
+        {kind === 'widget' && <a className="btn sm ghost" href={`${origin}/widget-preview.html?schedule=${encodeURIComponent(scheduleUrl)}&color=${encodeURIComponent(brand)}`} target="_blank" rel="noreferrer"><Icon name="link" size={14} /> Preview</a>}
+      </div>
+    </div>
+  );
+}
 
 export default function Settings({ notify }) {
   const [s, setS] = useState(null);
@@ -70,6 +101,12 @@ export default function Settings({ notify }) {
           <CopyLink url={s.scheduleUrl} notify={notify} />
         </Field>
         <Field label="Buy link" hint="Sent to members who run out of credits."><input value={s.buyUrl} onChange={(e) => setS({ ...s, buyUrl: e.target.value })} placeholder="https://yourstudio.com/class-packs" /></Field>
+      </section>
+
+      <section className="card">
+        <h3>Add to your website</h3>
+        <p className="muted small">Paste one of these into your website, funnel or HighLevel site (Custom JS/HTML element). Members see your live schedule, open seats and the waitlist.</p>
+        <EmbedCodes scheduleUrl={s.scheduleUrl} color={s.brand?.color} notify={notify} />
       </section>
 
       <section className="card">
