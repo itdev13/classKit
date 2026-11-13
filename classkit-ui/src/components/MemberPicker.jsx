@@ -2,18 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { Avatar, Credits, Field, Icon } from './ui.jsx';
 
-/** Search existing members, or add a new one (creates/merges the GHL contact). */
+/** Search ClassKit members and HighLevel contacts, or add a new one (creates/merges the GHL contact). */
 export default function MemberPicker({ value, onChange, notify }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
 
   useEffect(() => {
     if (value || adding) return undefined;
-    const t = setTimeout(() => {
-      api.members({ q }).then((r) => setResults(r.members.slice(0, 6))).catch(() => setResults([]));
-    }, 200);
+    const term = q.trim();
+    const t = setTimeout(async () => {
+      setSearching(true);
+      const [m, c] = await Promise.all([
+        api.members({ q: term }).then((r) => r.members.slice(0, 6)).catch(() => []),
+        term.length >= 2 ? api.searchContacts(term).then((r) => r.contacts).catch(() => []) : Promise.resolve([])
+      ]);
+      setResults(m);
+      setContacts(c);
+      setSearching(false);
+    }, 250);
     return () => clearTimeout(t);
   }, [q, value, adding]);
 
@@ -27,6 +37,10 @@ export default function MemberPicker({ value, onChange, notify }) {
       </div>
     );
   }
+
+  const pickContact = async (c) => {
+    try { onChange((await api.createMember({ contactId: c.contactId })).member); } catch (e) { notify(e.message, true); }
+  };
 
   if (adding) {
     const save = async () => {
@@ -52,10 +66,17 @@ export default function MemberPicker({ value, onChange, notify }) {
     <div className="stack">
       <div className="search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, phone or email" autoFocus /></div>
       <ul className="pick-list">
+        {results.length > 0 && <li className="pick-group">Members</li>}
         {results.map((m) => (
           <li key={m.contactId}><button onClick={() => onChange(m)}><Avatar name={m.name} size={28} /><span>{m.name}<small>{m.phone || m.email}</small></span><Credits member={m} /></button></li>
         ))}
-        {!results.length && <li className="muted small pad">No members found.</li>}
+        {contacts.length > 0 && <li className="pick-group">HighLevel contacts</li>}
+        {contacts.map((c) => (
+          <li key={c.contactId}><button onClick={() => pickContact(c)}><Avatar name={c.name} size={28} /><span>{c.name}<small>{c.phone || c.email}</small></span><span className="badge muted">0 credits</span></button></li>
+        ))}
+        {!results.length && !contacts.length && (
+          <li className="muted small pad">{searching ? 'Searching…' : q.trim().length < 2 ? 'Type a name, phone or email to search your contacts.' : 'No contact found. Add them as a new member below.'}</li>
+        )}
       </ul>
       <button className="btn ghost sm" onClick={() => setAdding(true)}><Icon name="plus" size={14} /> New member</button>
     </div>

@@ -386,6 +386,26 @@ class GHLService {
     return res.contact || res;
   }
 
+  /** Free-text search over the sub-account's contacts (name, email, phone). */
+  async searchContacts(locationId, query, limit = 8) {
+    const norm = (c) => ({
+      contactId: c.id || c._id,
+      name: c.contactName || [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || c.phone || 'Contact',
+      email: c.email || '',
+      phone: c.phone || ''
+    });
+    let list;
+    try {
+      const res = await this.apiRequest('POST', '/contacts/search', locationId, { locationId, query, pageLimit: limit });
+      list = res.contacts || [];
+    } catch (e) {
+      // Older/limited tokens: fall back to the legacy list endpoint.
+      const res = await this.apiRequest('GET', '/contacts/', locationId, null, { locationId, query, limit });
+      list = res.contacts || [];
+    }
+    return list.slice(0, limit).map(norm).filter((c) => c.contactId);
+  }
+
   async searchContactsByPhone(locationId, phone) {
     const res = await this.apiRequest('GET', '/contacts/', locationId, null, { locationId, query: phone, limit: 5 });
     return res.contacts || [];

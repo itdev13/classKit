@@ -41,8 +41,28 @@ router.get('/', wrap(async (req, res) => {
   res.json({ success: true, members, total, page, pages: Math.ceil(total / limit) });
 }));
 
-/** POST /api/members — add a walk-in (creates/merges the GHL contact). */
+/** GET /api/members/contacts?q= — HighLevel contacts matching q that aren't ClassKit members yet. */
+router.get('/contacts', wrap(async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return res.json({ success: true, contacts: [] });
+  let contacts = [];
+  try {
+    contacts = await ghlService.searchContacts(req.ws.locationId, q, 8);
+  } catch (e) {
+    return res.json({ success: true, contacts: [], warning: 'Could not search HighLevel contacts' });
+  }
+  const known = new Set((await Member.find({ locationId: req.ws.locationId, contactId: { $in: contacts.map((c) => c.contactId) } }, 'contactId').lean()).map((m) => m.contactId));
+  res.json({ success: true, contacts: contacts.filter((c) => !known.has(c.contactId)) });
+}));
+
+/** POST /api/members — add a walk-in (creates/merges the GHL contact), or { contactId } to use an existing contact. */
 router.post('/', wrap(async (req, res) => {
+  if (req.body?.contactId) {
+    const contactId = String(req.body.contactId);
+    await memberService.ensure(req.ws.locationId, contactId, { force: true });
+    const m = await memberService.refresh(req.ws.locationId, contactId, { workspace: req.ws, silent: true });
+    return res.json({ success: true, member: m });
+  }
   const { name, email, phone } = req.body || {};
   if (!name || (!email && !phone)) return res.status(400).json({ success: false, error: 'Name plus a phone or email is required' });
   const c = await ghlService.upsertContact(req.ws.locationId, { name, email, phone });

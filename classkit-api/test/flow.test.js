@@ -313,3 +313,17 @@ test('currency: learned from a paid order, owner choice in Settings wins', async
   await hook({ ...order('cur_2', 'c_cur'), currency: 'INR' });
   assert.equal(await cur(), 'EUR');
 });
+
+test('member search finds HighLevel contacts who are not members yet', async () => {
+  mock.contacts.set('ghl_only', { id: 'ghl_only', firstName: 'Testdd', lastName: 'Rao', email: 'testdd@example.com', phone: '+15550109999' });
+  const found = await call('GET', '/api/members/contacts?q=testdd@');
+  assert.equal(found.status, 200);
+  assert.deepEqual(found.body.contacts.map((c) => c.contactId), ['ghl_only']);
+  const picked = await call('POST', '/api/members', { contactId: 'ghl_only' });
+  assert.equal(picked.body.member.contactId, 'ghl_only');
+  assert.equal(picked.body.member.name, 'Testdd Rao');
+  assert.equal(picked.body.member.balance, 0);
+  // Now a member: no longer listed under HighLevel contacts, but found by the member search.
+  assert.equal((await call('GET', '/api/members/contacts?q=testdd')).body.contacts.length, 0);
+  assert.equal((await call('GET', '/api/members?q=testdd')).body.members.length, 1);
+});

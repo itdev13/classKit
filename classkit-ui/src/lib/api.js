@@ -53,6 +53,7 @@ export const api = {
 
   members: (params) => request('/api/members', { params }),
   createMember: (body) => request('/api/members', { method: 'POST', body }),
+  searchContacts: (q) => request('/api/members/contacts', { params: { q } }),
   member: (contactId) => request(`/api/members/${contactId}`),
   adjust: (contactId, body) => request(`/api/members/${contactId}/adjust`, { method: 'POST', body: { ...body, requestId: rid() } }),
   grant: (contactId, body) => request(`/api/members/${contactId}/grant`, { method: 'POST', body: { ...body, requestId: rid() } }),

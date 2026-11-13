@@ -54,6 +54,11 @@ function respond(method, endpoint, data, params) {
     contacts.set(c.id, c);
     return { contact: c, new: !existing };
   }
+  if (method === 'POST' && endpoint === '/contacts/search') {
+    const q = String(data?.query || '').toLowerCase();
+    const hit = (c) => [c.firstName, c.lastName, c.email, c.phone].some((v) => String(v || '').toLowerCase().includes(q));
+    return { contacts: [...contacts.values()].filter((c) => q && hit(c)).slice(0, data?.pageLimit || 8) };
+  }
   if (method === 'GET' && endpoint === '/contacts/') {
     const q = String(params?.query || '').replace(/\D/g, '').slice(-10);
     return { contacts: [...contacts.values()].filter((c) => q && String(c.phone || '').replace(/\D/g, '').endsWith(q)) };
