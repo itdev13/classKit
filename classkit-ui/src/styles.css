@@ -109,6 +109,25 @@ textarea { resize: vertical; }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand strong { display: block; font-size: 14px; line-height: 1.1; }
 .brand small { display: block; color: var(--muted); font-size: 11.5px; }
+.brand-logo { display: block; flex: none; object-fit: contain; border-radius: 8px; background: #fff; }
+.brand-initial { display: grid; place-items: center; flex: none; border-radius: 8px; color: #fff; font-weight: 800; }
+.brand-editor { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 22px; align-items: start; }
+.brand-fields { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.logo-row { display: flex; align-items: center; gap: 14px; }
+.logo-tile { width: 72px; height: 72px; border-radius: 14px; border: 1px dashed var(--line); display: grid; place-items: center; background: #fbfaff; flex: none; }
+.logo-tile .brand-logo, .logo-tile .brand-initial { border-radius: 10px; }
+.logo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); padding: 0; cursor: pointer; }
+.swatch.on { box-shadow: 0 0 0 2px var(--ink); }
+.swatch.custom { position: relative; overflow: hidden; background: conic-gradient(#f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #f43f5e); }
+.swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.brand-preview { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--paper); border: 1px solid var(--line); }
+.preview-bar { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+.preview-bar strong { display: block; font-size: 13.5px; }
+.preview-bar small { display: block; color: var(--muted); font-size: 11px; }
+.preview-body { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+.preview-pill { font-size: 12px; font-weight: 650; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, white); padding: 4px 10px; border-radius: 999px; }
 .tabs { display: flex; gap: 4px; overflow-x: auto; }
 .tab { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 9px; border: 0; background: transparent; color: var(--muted); font-weight: 650; white-space: nowrap; }
 .tab:hover { background: var(--line-soft); color: var(--ink); }
@@ -361,6 +380,7 @@ textarea { resize: vertical; }
   .kiosk-main { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
+  .brand-editor { grid-template-columns: 1fr; }
   .explain { grid-template-columns: 1fr; }
   .cal-rules { grid-template-columns: 1fr; }
   .grid2, .grid3, .check-list { grid-template-columns: 1fr; }

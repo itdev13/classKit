@@ -342,3 +342,19 @@ test('time zone and name are filled from HighLevel when missing; an owner-set zo
   assert.equal(ws.timezone, 'UTC');
   assert.equal(ws.timezoneLocked, true);
 });
+
+test('staff (non-admin) users cannot change settings; brand input is validated', async () => {
+  const { signSession } = require('../src/middleware/auth');
+  const staff = signSession({ locationId: LOC, companyId: null, userId: 'u_staff', name: 'Front desk', role: 'staff' });
+  const asStaff = (method, path, body) => fetch(base + path, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${staff}` }, body: body ? JSON.stringify(body) : undefined }).then((r) => r.status);
+  assert.equal(await asStaff('PUT', '/api/settings', { brand: { name: 'Hacked' } }), 403);
+  assert.equal(await asStaff('POST', '/api/packages', { name: 'Free', kind: 'pack', credits: 99, validityDays: 30 }), 403);
+  assert.equal(await asStaff('GET', '/api/classes'), 200);
+
+  assert.equal((await call('PUT', '/api/settings', { brand: { color: 'red' } })).status, 400);
+  assert.equal((await call('PUT', '/api/settings', { brand: { logoUrl: 'javascript:alert(1)' } })).status, 400);
+  const png = 'data:image/png;base64,' + Buffer.from('fakepng').toString('base64');
+  const ok = await call('PUT', '/api/settings', { brand: { name: '  Sunrise Yoga  ', color: '#0F766E', logoUrl: png } });
+  assert.equal(ok.status, 200);
+  assert.deepEqual([ok.body.settings.brand.name, ok.body.settings.brand.color, ok.body.settings.brand.logoUrl], ['Sunrise Yoga', '#0F766E', png]);
+});

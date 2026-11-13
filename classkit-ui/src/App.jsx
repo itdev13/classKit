@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { BrandMark } from './components/BrandEditor.jsx';
 import { setCurrency } from './lib/format.js';
 import { api, setToken, setRefreshHandler } from './lib/api.js';
 import { Icon, Spinner, Toast } from './components/ui.jsx';
@@ -32,6 +33,16 @@ async function handshake() {
   try { encryptedData = await requestGhlUserData(); } catch { /* not embedded */ }
   if (!encryptedData && !devLocation) return null;
   return api.verify(encryptedData ? { encryptedData } : { locationId: devLocation });
+}
+
+/** Studio colour → the app's accent variables (hover and soft tints derived from it). */
+function brandVars(color) {
+  if (!/^#[0-9a-f]{6}$/i.test(color || '') || color.toLowerCase() === '#5b4bdb') return undefined;
+  return {
+    '--accent': color,
+    '--accent-dk': `color-mix(in srgb, ${color} 82%, black)`,
+    '--accent-soft': `color-mix(in srgb, ${color} 12%, white)`
+  };
 }
 
 const TABS = [
@@ -105,11 +116,11 @@ export default function App() {
   const goMember = (contactId) => { setOpenMember(contactId); setView('members'); };
 
   return (
-    <div className="shell">
+    <div className="shell" style={brandVars(session?.workspace?.brand?.color)}>
       <header className="topnav">
         <div className="brand">
-          <img src="/icon.svg" alt="" width="28" height="28" />
-          <div><strong>ClassKit</strong><small>{session?.workspace?.locationName || 'Your studio'}</small></div>
+          <BrandMark brand={session?.workspace?.brand} fallbackName={session?.workspace?.locationName} size={30} />
+          <div><strong>{session?.workspace?.brand?.name || session?.workspace?.locationName || 'Your studio'}</strong><small>ClassKit{isAdmin ? '' : ' · Staff'}</small></div>
         </div>
         <nav className="tabs">
           {TABS.filter((t) => !t.admin || isAdmin).map((t) => (
@@ -124,7 +135,7 @@ export default function App() {
         {view === 'members' && <Members tz={tz} notify={notify} openId={openMember} setOpenId={setOpenMember} />}
         {view === 'packages' && <Packages isAdmin={isAdmin} notify={notify} />}
         {view === 'reports' && <Reports tz={tz} onOpenMember={goMember} />}
-        {view === 'settings' && isAdmin && <Settings notify={notify} />}
+        {view === 'settings' && isAdmin && <Settings notify={notify} onSaved={(st) => setSession((cur) => ({ ...cur, workspace: { ...cur.workspace, brand: st.brand, locationName: st.brand?.name || st.locationName || cur.workspace.locationName } }))} />}
       </main>
       <Toast toast={toast} onDone={clearToast} />
     </div>

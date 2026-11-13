@@ -60,7 +60,23 @@ router.put('/', requireAdmin, wrap(async (req, res) => {
     ws.markModified('templates');
   }
   if ('buyUrl' in b) ws.buyUrl = String(b.buyUrl || '').trim();
-  if (b.brand) ws.brand = { ...ws.brand.toObject?.() ?? ws.brand, ...b.brand };
+  if (b.brand) {
+    const cur = ws.brand.toObject?.() ?? ws.brand;
+    const next = { ...cur };
+    if ('name' in b.brand) next.name = String(b.brand.name || '').trim().slice(0, 60);
+    if ('color' in b.brand) {
+      if (!/^#[0-9a-f]{6}$/i.test(b.brand.color || '')) return res.status(400).json({ success: false, error: 'Brand colour must look like #5B4BDB' });
+      next.color = b.brand.color;
+    }
+    if ('logoUrl' in b.brand) {
+      const logo = String(b.brand.logoUrl || '').trim();
+      const okUrl = /^https:\/\/[^\s"'<>]{4,1000}$/i.test(logo);
+      const okData = /^data:image\/(png|jpeg|webp|gif);base64,[a-z0-9+/=]+$/i.test(logo) && logo.length <= 400000;
+      if (logo && !okUrl && !okData) return res.status(400).json({ success: false, error: 'Logo must be an uploaded image (under 300 KB) or an https:// link' });
+      next.logoUrl = logo;
+    }
+    ws.brand = next;
+  }
   if ('timezone' in b && b.timezone && String(b.timezone) !== ws.timezone) {
     const tz = String(b.timezone).trim();
     if (!require('../services/locationService').validTz(tz)) return res.status(400).json({ success: false, error: 'Unknown time zone. Use a name like America/New_York.' });

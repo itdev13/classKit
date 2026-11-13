@@ -3,6 +3,7 @@ import { setCurrency, currencySymbol, COMMON_CURRENCIES } from '../lib/format.js
 import { api } from '../lib/api.js';
 import { CalendarsEditor, PolicyEditor } from '../components/Editors.jsx';
 import { CopyLink, Field, Icon, Spinner } from '../components/ui.jsx';
+import BrandEditor from '../components/BrandEditor.jsx';
 
 const TEMPLATE_LABELS = {
   purchased: 'Package purchased',
@@ -60,7 +61,7 @@ function EmbedCodes({ scheduleUrl, color, notify }) {
   );
 }
 
-export default function Settings({ notify }) {
+export default function Settings({ notify, onSaved }) {
   const [s, setS] = useState(null);
   const [calendars, setCalendars] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -77,6 +78,7 @@ export default function Settings({ notify }) {
       const r = await api.saveSettings({ calendars, policy: s.policy, templates: s.templates, buyUrl: s.buyUrl, brand: s.brand, timezone: s.timezone, currency: s.currency });
       setS(r.settings);
       setCurrency(r.settings.currency);
+      onSaved?.(r.settings);
       notify('Settings saved');
     } catch (e) { notify(e.message, true); } finally { setSaving(false); }
   };
@@ -121,17 +123,19 @@ export default function Settings({ notify }) {
 
       <section className="card">
         <h3>Branding</h3>
-        <div className="grid3">
-          <Field label="Studio name"><input value={s.brand.name} onChange={(e) => setS({ ...s, brand: { ...s.brand, name: e.target.value } })} placeholder={s.locationName || 'Your studio'} /></Field>
-          <Field label="Brand color"><input type="color" value={s.brand.color} onChange={(e) => setS({ ...s, brand: { ...s.brand, color: e.target.value } })} /></Field>
-          <Field label="Time zone"><input value={s.timezone} onChange={(e) => setS({ ...s, timezone: e.target.value })} placeholder="America/New_York" /></Field>
-        </div>
+        <BrandEditor brand={s.brand} locationName={s.locationName} notify={notify} onChange={(brand) => setS({ ...s, brand })} />
+      </section>
+
+      <section className="card">
+        <h3>Region</h3>
+        <div className="grid2">
+          <Field label="Time zone" hint="Class times are shown in this zone."><input value={s.timezone} onChange={(e) => setS({ ...s, timezone: e.target.value })} placeholder="America/New_York" /></Field>
         <Field label="Currency" hint={s.currencyLocked ? 'Used for prices and reports.' : 'Picked up from your HighLevel account. Change it if it looks wrong.'}>
-          <select value={s.currency} onChange={(e) => setS({ ...s, currency: e.target.value })} style={{ maxWidth: 220 }}>
+          <select value={s.currency} onChange={(e) => setS({ ...s, currency: e.target.value })} >
             {[...new Set([s.currency, ...COMMON_CURRENCIES])].map((c) => <option key={c} value={c}>{c} ({currencySymbol(c)})</option>)}
           </select>
         </Field>
-        <Field label="Logo URL" hint="Shown on the kiosk and schedule."><input value={s.brand.logoUrl} onChange={(e) => setS({ ...s, brand: { ...s.brand, logoUrl: e.target.value } })} placeholder="https://…/logo.png" /></Field>
+        </div>
       </section>
 
       <section className="card">
