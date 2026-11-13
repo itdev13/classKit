@@ -72,6 +72,13 @@ function createApp() {
   app.use((req, res) => res.status(404).json({ success: false, error: 'Not Found' }));
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
+    // A HighLevel API call failed: pass HighLevel's own reason through so staff can act on it.
+    if (err.isAxiosError && err.response) {
+      const body = err.response.data || {};
+      const msg = [].concat(body.message || body.error || body.msg || `status ${err.response.status}`).join('; ');
+      logger.warn('HighLevel API error', { path: req.path, status: err.response.status, url: err.config?.url, body: JSON.stringify(body).slice(0, 1000) });
+      return res.status(err.response.status >= 500 ? 502 : 422).json({ success: false, error: `HighLevel: ${msg}`, code: 'GHL_ERROR' });
+    }
     const status = err.status || (err.name === 'CastError' ? 400 : 500);
     if (status >= 500) logger.error('Unhandled error', { message: err.message, stack: err.stack });
     res.status(status).json({ success: false, error: status >= 500 && process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message, code: err.code });
