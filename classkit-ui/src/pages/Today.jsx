@@ -165,10 +165,14 @@ function BookModal({ target, day, tz, notify, onClose, onDone }) {
     }).catch(() => {});
   }, [target.blank]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startTime = target.startTime || new Date(time).toISOString();
+  // While someone is typing a date the input can hold a partial/empty value: never let that throw.
+  const picked = time ? new Date(time) : null;
+  const validTime = !!target.startTime || (picked && !Number.isNaN(picked.getTime()));
+  const startTime = target.startTime || (validTime ? picked.toISOString() : null);
 
   const submit = async (waitlist = false) => {
     if (!member) return notify('Pick a member first', true);
+    if (!startTime) return notify('Pick a valid start time', true);
     setSaving(true);
     try {
       if (waitlist) {
@@ -192,7 +196,7 @@ function BookModal({ target, day, tz, notify, onClose, onDone }) {
       footer={<>
         <button className="btn ghost" onClick={onClose}>Close</button>
         {full ? <button className="btn primary" disabled={saving} onClick={() => submit(true)}>Add to waitlist</button>
-          : <button className="btn primary" disabled={saving || !calendarId} onClick={() => submit(false)}>{saving ? 'Booking…' : 'Book'}</button>}
+          : <button className="btn primary" disabled={saving || !calendarId || !validTime} onClick={() => submit(false)}>{saving ? 'Booking…' : 'Book'}</button>}
       </>}>
       <MemberPicker value={member} onChange={setMember} notify={notify} />
       {target.blank && (
