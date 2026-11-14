@@ -59,16 +59,18 @@ export default function Kiosk({ token }) {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  if (err) return <div className="kiosk"><div className="kiosk-card"><h1>Kiosk unavailable</h1><p>{err}</p></div></div>;
+  if (err) return <div className="kiosk"><div className="kiosk-card kiosk-msg"><h2>Kiosk unavailable</h2><p className="kiosk-sub">{err}</p></div></div>;
   if (!boot) return <div className="kiosk"><div className="spinner" /></div>;
   const { studio, sessions } = boot;
-  const accent = { '--brand': studio.color };
 
   return (
-    <div className="kiosk" style={accent}>
+    <div className="kiosk" style={{ '--brand': studio.color }}>
       <header className="kiosk-head">
-        {studio.logoUrl ? <img src={studio.logoUrl} alt="" /> : <div className="kiosk-mark">{studio.name[0]}</div>}
-        <h1>{studio.name}</h1>
+        <div className="kiosk-brand">
+          {studio.logoUrl ? <img src={studio.logoUrl} alt="" /> : <div className="kiosk-mark">{studio.name[0]}</div>}
+          <div><h1>{studio.name}</h1><span>Front desk check-in</span></div>
+        </div>
+        <Clock tz={studio.timezone} />
       </header>
 
       <div className="kiosk-main">
@@ -76,28 +78,34 @@ export default function Kiosk({ token }) {
           <div className={`kiosk-card result ${result.ok ? 'ok' : 'bad'}`}>
             {result.ok ? (
               <>
-                <div className="kiosk-tick">✓</div>
+                <div className="kiosk-tick"><svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></div>
                 <h2>{result.alreadyCheckedIn ? `You're already in, ${result.firstName}!` : `Welcome, ${result.firstName}!`}</h2>
                 <p className="kiosk-class">{result.className} · {fmtTime(result.startTime, studio.timezone)}</p>
-                <p className="kiosk-credits">{result.credits === 'unlimited' ? 'Unlimited membership' : `${result.credits} class${result.credits === 1 ? '' : 'es'} left`}</p>
-                {result.visits > 1 && <p className="kiosk-visits">Visit #{result.visits}. Enjoy your class!</p>}
+                <div className="kiosk-pills">
+                  <span>{result.credits === 'unlimited' ? 'Unlimited membership' : `${result.credits} class${result.credits === 1 ? '' : 'es'} left`}</span>
+                  {result.visits > 1 && <span>Visit #{result.visits}</span>}
+                </div>
+                <p className="kiosk-sub">Enjoy your class!</p>
               </>
             ) : (
               <>
-                <h2>Hmm, not quite</h2>
-                <p>{result.message}</p>
+                <div className="kiosk-tick bad">!</div>
+                <h2>We couldn't check you in</h2>
+                <p className="kiosk-sub big">{result.message}</p>
+                {!/front desk/i.test(result.message || '') && <p className="kiosk-sub">Check the number, or ask at the front desk.</p>}
               </>
             )}
-            <button className="kiosk-done" onClick={reset}>Done</button>
+            <button className="kiosk-done" onClick={reset}>{result.ok ? 'Done' : 'Try again'}</button>
+            <div className="kiosk-timer" key={String(result.ok) + (result.firstName || result.message)}><div /></div>
           </div>
         ) : (
           <div className="kiosk-card">
-            <h2>Check in</h2>
+            <h2>Check in for your class</h2>
             <p className="kiosk-sub">Enter the mobile number you booked with</p>
-            <div className="kiosk-display" aria-live="polite">{digits ? pretty(digits) : <span className="ph">(555) 000-0000</span>}</div>
+            <div className={`kiosk-display${digits ? '' : ' empty'}`} aria-live="polite">{digits ? pretty(digits) : '(555) 000-0000'}</div>
             <div className="kiosk-pad">
               {KEYS.map((k) => (
-                <button key={k} className={`key ${k.length > 1 ? 'fn' : ''}`} onClick={() => press(k)} aria-label={k}>
+                <button key={k} className={`key ${k.length > 1 ? 'fn' : ''}`} onClick={() => press(k)} aria-label={k === 'back' ? 'Delete' : k}>
                   {k === 'back' ? '⌫' : k === 'clear' ? 'Clear' : k}
                 </button>
               ))}
@@ -107,16 +115,35 @@ export default function Kiosk({ token }) {
         )}
 
         <aside className="kiosk-side">
-          <h3>Classes now</h3>
-          {sessions.length === 0 ? <p className="kiosk-sub">No classes in the next hour.</p> : sessions.map((s) => (
-            <div className="kiosk-session" key={s.name + s.startTime}>
-              <strong>{fmtTime(s.startTime, studio.timezone)}</strong>
-              <span>{s.name}</span>
-              <small>{s.attended}/{s.booked} here</small>
-            </div>
-          ))}
+          <h3>Classes starting soon</h3>
+          {sessions.length === 0 ? (
+            <div className="kiosk-none"><span>☾</span><p>No classes in the next hour.</p></div>
+          ) : sessions.map((s) => {
+            const pct = s.booked ? Math.round((s.attended / s.booked) * 100) : 0;
+            return (
+              <div className="kiosk-session" key={s.name + s.startTime}>
+                <div className="ks-time">{fmtTime(s.startTime, studio.timezone)}</div>
+                <div className="ks-main">
+                  <strong>{s.name}</strong>
+                  <div className="ks-bar"><div style={{ width: `${pct}%` }} /></div>
+                  <small>{s.attended} of {s.booked} checked in</small>
+                </div>
+              </div>
+            );
+          })}
         </aside>
       </div>
+    </div>
+  );
+}
+
+function Clock({ tz }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 15000); return () => clearInterval(t); }, []);
+  return (
+    <div className="kiosk-clock">
+      <strong>{fmtTime(now, tz)}</strong>
+      <span>{new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz || undefined }).format(now)}</span>
     </div>
   );
 }
